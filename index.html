@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reach Liao</title>
+<meta name="theme-color" content="#0B6E4F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reach Liao">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Layout: one-column phone app shell (max 640px), sticky header, scrolling views, fixed bottom tab bar.
+   Arrival boards borrow the dark LED panels at Singapore bus stops; everything around them stays quiet. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --sunk:#E8EDEA; --ink:#14201C; --muted:#5A6A64; --line:#D9E1DD;
+  --accent:#0B6E4F; --accent-ink:#FFFFFF; --accent-soft:#DCEFE7;
+  --panel:#111614; --panel-2:#1B2220; --panel-line:#2A3330; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
+  --led:#FFB627; --led-dim:#9A7A35;
+  --sea:#2FBF71; --sda:#F2A93B; --lsd:#E5484D; --walk:#8C9A95;
+  --danger:#B42318; --ok:#0B6E4F;
+  --f-display:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"Overpass Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:12px; --tabh:64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
+  --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
+  --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
+  --danger:#FF7A6E; --ok:#3CC08F; color-scheme: dark; } }
+:root[data-theme="dark"]{
+  --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
+  --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
+  --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
+  --danger:#FF7A6E; --ok:#3CC08F; color-scheme: dark; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+.app{max-width:640px;margin:0 auto;min-height:100%;padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 16px)}
+header.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.brand{font:800 20px/1 var(--f-display);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand .pole{width:10px;height:22px;border-radius:3px;background:var(--accent);box-shadow:inset 0 -7px 0 var(--led)}
+.top .sub{margin-left:auto;font:600 12px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+main{padding:16px 16px 0}
+section.view{display:flex;flex-direction:column;gap:16px}
+h2{font:800 22px/1.15 var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h3{font:700 13px/1.2 var(--f-display);margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.spacer{flex:1}
+
+/* buttons & inputs */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border-color:transparent;padding:8px 10px}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:default}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:inline-grid;place-items:center;padding:0;flex:none}
+.icon-btn svg,.btn svg{width:20px;height:20px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font:700 12px/1 var(--f-display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.input{width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px}
+.input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.seg{display:inline-flex;background:var(--sunk);border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:8px;padding:7px 12px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;width:100%;min-width:0}
+.item:first-child{border-top:0}
+.item:hover{background:var(--sunk)}
+.item .main{flex:1;min-width:0}
+.item .t{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .s{display:block;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.code{font:700 12px/1 var(--f-mono);background:var(--sunk);color:var(--ink);padding:5px 7px;border-radius:6px;font-variant-numeric:tabular-nums;flex:none}
+.dist{font:600 12px/1 var(--f-mono);color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:700 13px/1 var(--f-mono);border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;min-width:40px;text-align:center}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.sm{font-size:11px;padding:4px 6px;min-width:0}
+.empty{text-align:center;padding:28px 16px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty p{margin:0;max-width:36ch}
+
+/* LED arrival board */
+.board{background:var(--panel);color:var(--panel-ink);border-radius:var(--r);overflow:hidden;border:1px solid var(--panel-line)}
+.board .bhead{display:grid;grid-template-columns:56px 1fr repeat(3,46px);gap:8px;padding:8px 12px;font:700 10px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--panel-muted);border-bottom:1px solid var(--panel-line)}
+.board .bhead span:nth-child(n+3){text-align:right}
+.arow{display:grid;grid-template-columns:56px 1fr repeat(3,46px);gap:8px;align-items:center;padding:9px 12px;border-top:1px solid var(--panel-line)}
+.arow:first-of-type{border-top:0}
+.svc{font:800 18px/1 var(--f-display);color:var(--panel-ink);background:var(--panel-2);border:1px solid var(--panel-line);border-radius:8px;padding:8px 4px 6px;text-align:center;min-width:0}
+.dest{min-width:0;font-size:13px;line-height:1.25}
+.dest .d{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dest .tags{font:600 10px/1.4 var(--f-mono);color:var(--panel-muted);letter-spacing:.04em}
+.eta{font:700 20px/1 var(--f-mono);color:var(--led);text-align:right;font-variant-numeric:tabular-nums;position:relative;padding-bottom:6px;text-shadow:0 0 10px rgba(255,182,39,.35)}
+.eta.later{font-size:16px;color:var(--led-dim);text-shadow:none}
+.eta.est{opacity:.75}
+.eta.est::before{content:"";display:inline-block;width:5px;height:5px;border:1.5px solid currentColor;border-radius:50%;margin-right:3px;vertical-align:.5em}
+.eta::after{content:"";position:absolute;right:0;bottom:0;width:22px;height:3px;border-radius:2px;background:transparent}
+.eta.SEA::after{background:var(--sea)} .eta.SDA::after{background:var(--sda)} .eta.LSD::after{background:var(--lsd)}
+.eta.none{color:var(--panel-muted);text-shadow:none;font-size:14px}
+.arow.off .svc{opacity:.45}
+.arow.off .dest{color:var(--panel-muted)}
+.bfoot{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-top:1px solid var(--panel-line);font:600 10px/1.2 var(--f-mono);color:var(--panel-muted)}
+.bfoot i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.bfoot .upd{margin-left:auto}
+.board .msg{padding:14px 12px;font-size:13px;color:var(--panel-muted)}
+.board.compact .arow{padding:7px 12px}
+.board.compact .svc{font-size:16px;padding:6px 4px 4px}
+
+/* saved */
+.saved-card{padding:0;overflow:hidden;gap:0}
+.saved-card .sh{display:flex;align-items:center;gap:10px;padding:12px 14px;border:0;background:transparent;text-align:left;width:100%}
+.saved-card .sh .main{flex:1;min-width:0}
+.saved-card .sh .t{display:block;font:800 16px/1.2 var(--f-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-card .sh .s{display:block;font-size:13px;color:var(--muted)}
+.saved-card .board{border-radius:0;border-left:0;border-right:0;border-bottom:0}
+.edit-tools{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-top:1px solid var(--line);background:var(--sunk)}
+
+/* sheet (stop / service detail) */
+.sheet{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet .inner{max-width:640px;margin:0 auto;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 32px)}
+.sheet .bar{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.sheet .bar .ttl{font:700 13px/1 var(--f-display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sheet .content{display:flex;flex-direction:column;gap:16px}
+.stop-head{display:flex;gap:12px;align-items:flex-start}
+.stop-head .main{flex:1;min-width:0}
+.star[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.minimap{height:180px;border-radius:var(--r);border:1px solid var(--line);overflow:hidden;z-index:0}
+.svc-big{font:800 44px/1 var(--f-display);letter-spacing:-.02em}
+.seq{display:flex;flex-direction:column}
+.seq .item{position:relative;padding-left:44px}
+.seq .item::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:3px;background:var(--accent);opacity:.35}
+.seq .item:first-child::before{top:50%} .seq .item:last-child::before{bottom:50%}
+.seq .item .dot{position:absolute;left:16px;top:50%;width:13px;height:13px;margin-top:-6.5px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+.seq .item .n{font:600 11px/1 var(--f-mono);color:var(--muted);width:22px;flex:none;font-variant-numeric:tabular-nums}
+table.fl{width:100%;border-collapse:collapse;font-size:13px}
+table.fl th,table.fl td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.fl th{font:700 11px/1 var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+table.fl td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+table.fl td:first-child{font-weight:700}
+table.fl .today{background:var(--accent-soft)}
+.scroll-x{overflow-x:auto}
+details.fold{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+details.fold>summary{padding:12px 14px;font-weight:700;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details.fold[open]>summary::after{transform:rotate(-135deg)}
+details.fold .fbody{padding:0 14px 14px}
+
+/* nearby */
+#nearMap{height:min(46vh,380px);border-radius:var(--r);border:1px solid var(--line);z-index:0}
+.map-wrap{position:relative}
+.map-tools{position:absolute;right:10px;top:10px;z-index:500;display:flex;flex-direction:column;gap:8px}
+.crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;z-index:450;pointer-events:none}
+.crosshair::before,.crosshair::after{content:"";position:absolute;background:var(--accent)}
+.crosshair::before{left:8px;top:0;width:2px;height:18px}.crosshair::after{top:8px;left:0;height:2px;width:18px}
+
+/* plan */
+.plan-form{display:flex;flex-direction:column;gap:12px}
+.od{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.od .stack{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ac{position:relative}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:300px;overflow-y:auto}
+.sugg .item{padding:10px 12px}
+.with-btn{display:flex;gap:6px}
+.itin{padding:0;gap:0;overflow:hidden}
+.itin .ih{display:flex;flex-direction:column;gap:10px;padding:14px;border:0;background:transparent;text-align:left;width:100%}
+.itin .sum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.itin .dur{font:800 26px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.itin .dur small{font-size:14px;font-weight:700;margin-left:2px}
+.itin .meta{font:600 12px/1.3 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.strip{display:flex;gap:3px;height:26px;width:100%}
+.strip .seg-l{border-radius:6px;display:grid;place-items:center;font:800 12px/1 var(--f-mono);color:#fff;min-width:22px;overflow:hidden;white-space:nowrap}
+.strip .walk{background:transparent;border:1.5px dashed var(--walk);color:var(--muted)}
+.legs{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.leg{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
+.leg:first-child{border-top:0}
+.leg .badge{font:800 13px/1 var(--f-mono);border-radius:8px;padding:7px 0;text-align:center;color:#fff;align-self:start}
+.leg .badge.walk{color:var(--muted);border:1.5px dashed var(--walk);background:transparent}
+.leg .lt{font-weight:700}
+.leg .ls{font-size:13px;color:var(--muted)}
+.leg .board{margin-top:8px}
+.note{font-size:13px;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 12px}
+.note.warn{color:var(--ink);border-left:3px solid var(--sda)}
+
+/* tab bar */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;color:var(--muted);font:700 11px/1 var(--f-display);letter-spacing:.02em}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a[aria-current="page"]{color:var(--accent)}
+nav.tabs a[aria-current="page"] svg{stroke-width:2.4}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:100;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:12px 0}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation-duration:2.4s}*{scroll-behavior:auto!important}}
+.leaflet-container{font:13px var(--f-body);background:var(--sunk)}
+.leaflet-popup-content{margin:10px 12px}
+.pop-t{font-weight:700}
+.pop-b{margin-top:6px;border:0;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:5px 10px;font-weight:700}
+.me-dot{width:16px;height:16px;border-radius:50%;background:#2D7FF9;border:3px solid #fff;box-shadow:0 0 0 6px rgba(45,127,249,.25)}
+textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><span class="pole" aria-hidden="true"></span>Reach Liao</div>
+    <div class="sub" id="clock"></div>
+  </header>
+  <main>
+    <div id="boot" class="loading"><span class="spin"></span>Loading Singapore bus data…</div>
+
+    <!-- SAVED -->
+    <section class="view" data-view="saved" hidden>
+      <div class="row"><h2>Saved stops</h2><span class="spacer"></span><button class="btn ghost" id="editSaved" aria-pressed="false">Edit</button></div>
+      <div id="savedList" class="view" style="gap:14px"></div>
+    </section>
+
+    <!-- NEARBY -->
+    <section class="view" data-view="nearby" hidden>
+      <div class="row"><h2>Nearby stops</h2></div>
+      <div class="map-wrap">
+        <div id="nearMap" role="application" aria-label="Map of bus stops"></div>
+        <div class="crosshair" aria-hidden="true"></div>
+        <div class="map-tools">
+          <button class="icon-btn" id="locateBtn" title="Go to my location" aria-label="Go to my location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+        </div>
+      </div>
+      <p class="muted small" id="nearHint" style="margin:0">Stops closest to the crosshair. Drag the map or tap the locate button.</p>
+      <div class="list" id="nearList"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="view" data-view="search" hidden>
+      <h2>Search</h2>
+      <input class="input" id="q" type="search" placeholder="Bus number, stop code, stop or place name" autocomplete="off" enterkeyhint="search" aria-label="Search">
+      <div id="searchOut" class="view" style="gap:16px"></div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="view" data-view="plan" hidden>
+      <h2>Plan a journey</h2>
+      <form class="plan-form" id="planForm" autocomplete="off">
+        <div class="od">
+          <div class="stack">
+            <div class="field ac">
+              <label for="fromIn">From</label>
+              <div class="with-btn">
+                <input class="input" id="fromIn" placeholder="Place, postal code or bus stop">
+                <button type="button" class="icon-btn" id="fromMe" title="Use my location" aria-label="Use my location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
+              </div>
+              <div class="sugg" id="fromSugg" hidden></div>
+            </div>
+            <div class="field ac">
+              <label for="toIn">To</label>
+              <input class="input" id="toIn" placeholder="Place, postal code or bus stop">
+              <div class="sugg" id="toSugg" hidden></div>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" id="swapOD" title="Swap from and to" aria-label="Swap from and to"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg></button>
+        </div>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Transport mode" id="modeSeg">
+            <button type="button" data-mode="TRANSIT" aria-pressed="true">Bus + MRT</button>
+            <button type="button" data-mode="BUS" aria-pressed="false">Bus only</button>
+            <button type="button" data-mode="RAIL" aria-pressed="false">MRT only</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Departure time" id="whenSeg">
+            <button type="button" data-when="now" aria-pressed="true">Leave now</button>
+            <button type="button" data-when="at" aria-pressed="false">Leave at</button>
+          </div>
+          <input class="input" type="datetime-local" id="whenAt" hidden style="width:auto;flex:1;min-width:180px" aria-label="Departure time">
+        </div>
+        <button class="btn primary" type="submit" id="planBtn" style="justify-content:center">Find routes</button>
+      </form>
+      <div id="planOut" class="view" style="gap:14px"></div>
+    </section>
+
+    <!-- MORE -->
+    <section class="view" data-view="more" hidden>
+      <h2>More</h2>
+
+      <div class="card">
+        <h3>MRT &amp; LRT service status</h3>
+        <p style="margin:0" class="small">Live train disruption alerts come from an LTA feed that only works with a server and an LTA key, so they aren't shown in the app. These official channels post disruptions as they happen:</p>
+        <div class="list">
+          <a class="item" href="https://x.com/SMRT_Singapore" target="_blank" rel="noopener"><span class="main"><span class="t">SMRT updates</span><span class="s">NSL, EWL, CCL, TEL, BPLRT</span></span><span class="dist">↗</span></a>
+          <a class="item" href="https://x.com/SBSTransit_Ltd" target="_blank" rel="noopener"><span class="main"><span class="t">SBS Transit updates</span><span class="s">NEL, DTL, Sengkang–Punggol LRT</span></span><span class="dist">↗</span></a>
+          <a class="item" href="https://x.com/LTAsg" target="_blank" rel="noopener"><span class="main"><span class="t">LTA updates</span><span class="s">Network-wide advisories, bridging buses</span></span><span class="dist">↗</span></a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Sync saved stops</h3>
+        <p style="margin:0" class="small">Your saved stops live in this browser. To copy them to another phone or laptop, copy this code, then paste it on the other device under “Add stops from a code”.</p>
+        <textarea class="input" id="syncCode" readonly aria-label="Sync code"></textarea>
+        <div class="row">
+          <button class="btn" id="copyCode">Copy code</button>
+          <button class="btn" id="copyLink">Copy sync link</button>
+        </div>
+        <div class="field">
+          <label for="importCode">Add stops from a code</label>
+          <div class="with-btn"><input class="input" id="importCode" placeholder="Paste a sync code"><button class="btn" id="importBtn">Add</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>OneMap journey planning</h3>
+        <p style="margin:0" class="small" id="omStatus"></p>
+        <p style="margin:0" class="small muted">Bus + MRT routes come from OneMap, Singapore's official map service. It needs a free OneMap API account. <a href="https://www.onemap.gov.sg/apidocs/register" target="_blank" rel="noopener">Register here</a>, then sign in below. Without it, Plan still finds bus-only routes.</p>
+        <form id="omForm" class="view" style="gap:10px" autocomplete="on">
+          <div class="field"><label for="omEmail">OneMap account email</label><input class="input" id="omEmail" type="email" autocomplete="username"></div>
+          <div class="field"><label for="omPw">Password</label><input class="input" id="omPw" type="password" autocomplete="current-password"></div>
+          <label class="row small"><input type="checkbox" id="omRemember"> Keep me signed in on this device (stores the password in this browser so the 3‑day token renews itself)</label>
+          <div class="row"><button class="btn primary" type="submit" id="omConnect">Connect OneMap</button><button class="btn danger" type="button" id="omDisconnect" hidden>Disconnect</button></div>
+        </form>
+        <details class="fold"><summary>Paste an API token instead</summary><div class="fbody view" style="gap:8px">
+          <textarea class="input" id="omToken" placeholder="Paste a OneMap access token"></textarea>
+          <button class="btn" id="omTokenSave">Use this token</button>
+        </div></details>
+      </div>
+
+      <div class="card">
+        <h3>About the data</h3>
+        <p style="margin:0" class="small">Live arrivals: LTA DataMall via <a href="https://github.com/cheeaun/arrivelah" target="_blank" rel="noopener">arrivelah</a>. Stops, services and first/last bus: <a href="https://busrouter.sg" target="_blank" rel="noopener">BusRouter SG</a> (scraped from LTA). Maps, place search and journeys: <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener">OneMap</a> © Singapore Land Authority.</p>
+        <p style="margin:0" class="small muted" id="dataInfo"></p>
+        <div class="row"><button class="btn" id="refreshData">Refresh bus data</button></div>
+        <p style="margin:0" class="small muted">Times with a small ring are scheduled estimates (no live GPS for that bus). Public holidays follow the Sunday timetable.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden><div class="inner">
+  <div class="bar"><button class="icon-btn" id="sheetBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ttl" id="sheetTitle"></span></div>
+  <div class="content" id="sheetBody"></div>
+</div></div>
+
+<nav class="tabs" aria-label="Sections"><div class="in">
+  <a href="#saved" data-tab="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z"/></svg>Saved</a>
+  <a href="#nearby" data-tab="nearby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Nearby</a>
+  <a href="#search" data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Search</a>
+  <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/></svg>Plan</a>
+  <a href="#more" data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>More</a>
+</div></nav>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+'use strict';
+/* ========= config ========= */
+const DATA_URL = 'https://data.busrouter.sg/v1/';
+const ARRIVE_URL = 'https://arrivelah2.busrouter.sg/?id=';
+const OM = 'https://www.onemap.gov.sg';
+const SG_CENTRE = [1.3521, 103.8198];
+const REFRESH_MS = 25000;
+const LINE_COLORS = {EW:'#009645',CG:'#009645',NS:'#D42E12',NE:'#9900AA',CC:'#FA9E0D',CE:'#FA9E0D',DT:'#005EC4',TE:'#9D5B25',BP:'#748477',SK:'#748477',PG:'#748477',ST:'#748477',PT:'#748477',SW:'#748477',SE:'#748477',PE:'#748477',PW:'#748477',JE:'#0099AA',JS:'#0099AA',JW:'#0099AA',CR:'#97C616'};
+const BUS_COLOR = '#0B6E4F';
+
+/* ========= helpers ========= */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('rl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('rl.' + k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k) { try { localStorage.removeItem('rl.' + k); } catch {} }
+};
+const natSort = (a, b) => (parseInt(a) - parseInt(b)) || a.localeCompare(b);
+function dist(lat1, lng1, lat2, lng2) {
+  const dy = (lat2 - lat1) * 110574, dx = (lng2 - lng1) * 111320 * Math.cos(lat1 * Math.PI / 180);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+const fmtDist = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1) + ' km';
+const fmtTime = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600); }
+async function copyText(text, label) {
+  try { await navigator.clipboard.writeText(text); toast(label + ' copied'); }
+  catch { toast('Select the text and copy it manually'); }
+}
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const isDark = () => matchMedia('(prefers-color-scheme: dark)').matches;
+
+/* ========= state ========= */
+const S = {
+  stops: {}, services: {}, firstlast: null,
+  stopRoutes: {}, grid: {},
+  arr: {}, inflight: {},
+  saved: store.get('saved', []),
+  tab: 'saved', editing: false,
+  plan: { from: null, to: null, mode: 'TRANSIT', when: 'now' },
+  nearMap: null, sheetMap: null, lastLoc: store.get('lastLoc', null)
+};
+
+/* ========= static data ========= */
+async function loadJSON(name, maxAgeDays) {
+  const cached = store.get('cache.' + name);
+  if (cached && Date.now() - cached.t < maxAgeDays * 864e5) return cached.d;
+  try {
+    const r = await fetch(DATA_URL + name, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    store.set('cache.' + name, { t: Date.now(), d });
+    return d;
+  } catch (e) { if (cached) return cached.d; throw e; }
+}
+const cellKey = (lat, lng) => Math.floor(lat / 0.005) + ',' + Math.floor(lng / 0.005);
+function buildIndex() {
+  S.stopRoutes = {}; S.grid = {};
+  for (const [no, s] of Object.entries(S.services))
+    (s.routes || []).forEach((route, dir) => route.forEach((code, idx) => { (S.stopRoutes[code] ||= []).push({ no, dir, idx }); }));
+  for (const [code, v] of Object.entries(S.stops)) (S.grid[cellKey(v[1], v[0])] ||= []).push(code);
+}
+function svcAt(code) { return [...new Set((S.stopRoutes[code] || []).map(r => r.no))].sort(natSort); }
+function stopsNear(lat, lng, radius, limit = 15) {
+  const cy = Math.floor(lat / 0.005), cx = Math.floor(lng / 0.005), span = Math.ceil(radius / 550) + 1, out = [];
+  for (let y = cy - span; y <= cy + span; y++) for (let x = cx - span; x <= cx + span; x++)
+    for (const code of S.grid[y + ',' + x] || []) {
+      const s = S.stops[code], d = dist(lat, lng, s[1], s[0]);
+      if (d <= radius) out.push({ code, d });
+    }
+  return out.sort((a, b) => a.d - b.d).slice(0, limit);
+}
+const stopName = code => S.stops[code]?.[2] || ('Stop ' + code);
+async function getFirstLast() {
+  if (S.firstlast) return S.firstlast;
+  S.firstlast = await loadJSON('firstlast.min.json', 7);
+  return S.firstlast;
+}
+function parseFL(lines) {
+  // "svc wdFirst wdLast satFirst satLast sunFirst sunLast" ; "=" same as weekday, "-" no service
+  return (lines || []).map(l => {
+    const [svc, ...t] = l.split(' ');
+    const v = t.map((x, i) => x === '=' ? t[i % 2] : x);
+    const f = x => (!x || x === '-') ? '—' : x.slice(0, 2) + ':' + x.slice(2);
+    return { svc: svc.toUpperCase(), wd: [f(v[0]), f(v[1])], sat: [f(v[2]), f(v[3])], sun: [f(v[4]), f(v[5])] };
+  }).sort((a, b) => natSort(a.svc, b.svc));
+}
+const dayType = () => ({ 0: 'sun', 6: 'sat' })[new Date().getDay()] || 'wd';
+
+/* ========= live arrivals ========= */
+async function fetchArrivals(code, force) {
+  const c = S.arr[code];
+  if (!force && c && Date.now() - c.t < REFRESH_MS - 2000) return c;
+  if (S.inflight[code]) return S.inflight[code];
+  S.inflight[code] = (async () => {
+    try {
+      const r = await fetch(ARRIVE_URL + encodeURIComponent(code));
+      if (!r.ok) throw new Error('Arrival service replied ' + r.status);
+      const j = await r.json();
+      S.arr[code] = { t: Date.now(), services: j.services || [], err: null };
+    } catch (e) {
+      S.arr[code] = { t: Date.now(), services: c?.services || [], err: navigator.onLine === false ? 'You are offline' : 'Couldn’t reach the live arrivals service' };
+    } finally { delete S.inflight[code]; }
+    return S.arr[code];
+  })();
+  return S.inflight[code];
+}
+function etaCell(b, first) {
+  if (!b || !b.time) return `<span class="eta none">–</span>`;
+  const ms = Date.parse(b.time) - Date.now();
+  const m = Math.floor(ms / 60000);
+  const txt = m <= 0 ? 'Arr' : String(m);
+  const est = b.monitored === 0 ? ' est' : '';
+  return `<span class="eta ${esc(b.load || '')}${first ? '' : ' later'}${est}" title="${esc(loadName(b.load))}${b.monitored === 0 ? ', scheduled' : ''}">${txt}</span>`;
+}
+const loadName = l => ({ SEA: 'Seats available', SDA: 'Standing available', LSD: 'Limited standing' })[l] || '';
+const typeName = t => ({ SD: 'Single deck', DD: 'Double deck', BD: 'Bendy' })[t] || '';
+function renderBoard(el) {
+  const code = el.dataset.arr, only = el.dataset.only ? el.dataset.only.split(',') : null;
+  const data = S.arr[code];
+  if (!data) { el.innerHTML = `<div class="msg"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Getting live times…</div>`; return; }
+  let list = data.services.slice().sort((a, b) => natSort(a.no, b.no));
+  const known = svcAt(code);
+  const present = new Set(list.map(s => s.no));
+  let off = known.filter(n => !present.has(n));
+  if (only) { list = list.filter(s => only.includes(s.no)); off = off.filter(n => only.includes(n)); }
+  const rows = list.map(s => {
+    const n = s.next, dc = n?.destination_code;
+    const dest = dc ? (dc === n.origin_code ? 'Loop service' : 'To ' + stopName(dc)) : '';
+    const tags = [typeName(n?.type), n?.feature === 'WAB' ? '♿ Accessible' : ''].filter(Boolean).join(' · ');
+    return `<div class="arow"><a class="svc" href="#svc/${encodeURIComponent(s.no)}" aria-label="Bus ${esc(s.no)} route">${esc(s.no)}</a>
+      <div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>
+      ${etaCell(s.next, true)}${etaCell(s.next2, false)}${etaCell(s.next3, false)}</div>`;
+  }).join('');
+  const offRows = (el.dataset.compact ? [] : off).map(no => `<div class="arow off"><a class="svc" href="#svc/${encodeURIComponent(no)}">${esc(no)}</a><div class="dest"><span class="d">Not operating now</span></div><span></span><span></span><span class="eta none">–</span></div>`).join('');
+  const ago = Math.round((Date.now() - data.t) / 1000);
+  el.innerHTML = (rows || offRows ? `<div class="bhead"><span>Bus</span><span>Destination</span><span>Next</span><span>2nd</span><span>3rd</span></div>` : '') +
+    (rows + offRows || `<div class="msg">${only ? 'None of your chosen buses have live times right now.' : 'No buses are reporting at this stop right now.'}</div>`) +
+    `<div class="bfoot"><span><i style="background:var(--sea)"></i>Seats</span><span><i style="background:var(--sda)"></i>Standing</span><span><i style="background:var(--lsd)"></i>Limited</span>
+     <span class="upd">${data.err ? esc(data.err) : (ago < 5 ? 'Live · just now' : 'Live · ' + ago + 's ago')}</span></div>`;
+}
+function boardHTML(code, opts = {}) {
+  return `<div class="board${opts.compact ? ' compact' : ''}" data-arr="${esc(code)}"${opts.only?.length ? ` data-only="${esc(opts.only.join(','))}"` : ''}${opts.compact ? ' data-compact="1"' : ''} aria-live="polite"></div>`;
+}
+let tickBusy = false;
+async function tick(force) {
+  if (document.hidden || tickBusy) return;
+  tickBusy = true;
+  try {
+    const sheetOpen = !$('#sheet').hidden;
+    const boards = $$(sheetOpen ? '#sheet [data-arr]' : 'main [data-arr]').filter(el => el.offsetParent !== null);
+    boards.forEach(renderBoard);
+    const codes = [...new Set(boards.map(b => b.dataset.arr))];
+    await Promise.all(codes.map(c => fetchArrivals(c, force)));
+    boards.forEach(el => el.isConnected && renderBoard(el));
+  } finally { tickBusy = false; }
+}
+setInterval(() => tick(false), 10000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(false); });
+setInterval(() => { const d = new Date(); $('#clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()); }, 1000);
+
+/* ========= saved stops ========= */
+function saveSaved() { store.set('saved', S.saved); renderSync(); }
+const isSaved = code => S.saved.some(s => s.code === code);
+function toggleSave(code) {
+  if (isSaved(code)) { S.saved = S.saved.filter(s => s.code !== code); toast('Removed from Saved'); }
+  else { S.saved.push({ code, label: '', only: [] }); toast('Saved'); }
+  saveSaved();
+}
+function renderSaved() {
+  const out = $('#savedList');
+  $('#editSaved').hidden = !S.saved.length;
+  $('#editSaved').textContent = S.editing ? 'Done' : 'Edit';
+  $('#editSaved').setAttribute('aria-pressed', S.editing);
+  if (!S.saved.length) {
+    out.innerHTML = `<div class="card empty">
+      <p><strong>No saved stops yet.</strong></p>
+      <p class="muted small">Find your usual stops, open one and tap the star. They'll show up here with live times that refresh by themselves.</p>
+      <div class="row" style="justify-content:center"><a class="btn primary" href="#nearby">Find stops near me</a><a class="btn" href="#search">Search stops</a></div>
+      <p class="muted small" style="margin-top:6px">Or peek at an example stop:</p>
+      <div class="chips" style="justify-content:center">${['75009', '99009', '10009'].filter(c => S.stops[c]).map(c => `<a class="chip sm" style="text-decoration:none;color:var(--ink)" href="#stop/${c}">${esc(stopName(c))} · ${c}</a>`).join('')}</div>
+    </div>`;
+    return;
+  }
+  out.innerHTML = S.saved.map((s, i) => {
+    const st = S.stops[s.code];
+    const title = s.label || stopName(s.code);
+    const sub = [s.label ? stopName(s.code) : '', st?.[3], s.code].filter(Boolean).join(' · ');
+    const edit = S.editing ? `<div class="edit-tools">
+        <div class="field"><label for="lbl${i}">Nickname</label><input class="input" id="lbl${i}" data-lbl="${i}" value="${esc(s.label)}" placeholder="e.g. Home, Work, Campus"></div>
+        <div class="field"><label>Show only these buses (none ticked = all)</label><div class="chips">${svcAt(s.code).map(n => `<button class="chip${s.only?.includes(n) ? ' on' : ''}" data-only-i="${i}" data-n="${esc(n)}" aria-pressed="${!!s.only?.includes(n)}">${esc(n)}</button>`).join('')}</div></div>
+        <div class="row"><button class="btn" data-mv="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>Move up</button><button class="btn" data-mv="${i}" data-d="1" ${i === S.saved.length - 1 ? 'disabled' : ''}>Move down</button><span class="spacer"></span><button class="btn danger" data-rm="${i}">Remove</button></div>
+      </div>` : '';
+    return `<div class="card saved-card">
+      <a class="sh" href="#stop/${esc(s.code)}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(title)}</span><span class="s">${esc(sub)}</span></span><span class="code">${esc(s.code)}</span></a>
+      ${boardHTML(s.code, { compact: true, only: s.only })}${edit}</div>`;
+  }).join('');
+  tick(false);
+}
+$('#editSaved').onclick = () => { S.editing = !S.editing; renderSaved(); };
+$('#savedList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rm != null) { S.saved.splice(+b.dataset.rm, 1); saveSaved(); renderSaved(); }
+  else if (b.dataset.mv != null) { const i = +b.dataset.mv, j = i + +b.dataset.d; [S.saved[i], S.saved[j]] = [S.saved[j], S.saved[i]]; saveSaved(); renderSaved(); }
+  else if (b.dataset.onlyI != null) {
+    const s = S.saved[+b.dataset.onlyI], n = b.dataset.n; s.only ||= [];
+    s.only = s.only.includes(n) ? s.only.filter(x => x !== n) : [...s.only, n];
+    saveSaved(); renderSaved();
+  }
+});
+$('#savedList').addEventListener('change', e => {
+  const i = e.target.dataset.lbl; if (i == null) return;
+  S.saved[+i].label = e.target.value.trim(); saveSaved();
+  const card = e.target.closest('.saved-card'); $('.t', card).textContent = S.saved[+i].label || stopName(S.saved[+i].code);
+});
+
+/* sync */
+const b64enc = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64dec = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
+function syncCode() { return 'RL1.' + b64enc(JSON.stringify(S.saved.map(s => [s.code, s.label || '', (s.only || []).join(',')]))); }
+function renderSync() { $('#syncCode').value = S.saved.length ? syncCode() : 'Save a stop first, then your code appears here.'; }
+function importCode(raw) {
+  let code = String(raw || '').trim();
+  const m = code.match(/sync=([\w\-.]+)/); if (m) code = m[1];
+  if (!code.startsWith('RL1.')) {
+    // also accept plain stop codes: "96041, 99009"
+    const plain = code.split(/[\s,]+/).filter(c => S.stops[c]);
+    if (!plain.length) { toast('That code doesn’t look right'); return 0; }
+    return mergeSaved(plain.map(c => [c, '', '']));
+  }
+  try { return mergeSaved(JSON.parse(b64dec(code.slice(4)))); } catch { toast('That code doesn’t look right'); return 0; }
+}
+function mergeSaved(rows) {
+  let added = 0;
+  for (const [code, label, only] of rows) {
+    if (!S.stops[code]) continue;
+    const ex = S.saved.find(s => s.code === code);
+    if (ex) { if (label && !ex.label) ex.label = label; continue; }
+    S.saved.push({ code, label: label || '', only: only ? only.split(',') : [] }); added++;
+  }
+  saveSaved(); toast(added ? `Added ${added} stop${added > 1 ? 's' : ''}` : 'Those stops are already saved');
+  return added;
+}
+$('#copyCode').onclick = () => S.saved.length && copyText(syncCode(), 'Code');
+$('#copyLink').onclick = () => S.saved.length && copyText(location.href.split('#')[0] + '#sync=' + syncCode(), 'Sync link');
+$('#importBtn').onclick = () => { if (importCode($('#importCode').value)) { $('#importCode').value = ''; } };
+
+/* ========= stop sheet ========= */
+function openSheet(title) {
+  const sh = $('#sheet'); sh.hidden = false; sh.scrollTop = 0;
+  $('#sheetTitle').textContent = title; document.body.style.overflow = 'hidden';
+  if (S.sheetMap) { S.sheetMap.remove(); S.sheetMap = null; }
+  return $('#sheetBody');
+}
+function closeSheet() {
+  $('#sheet').hidden = true; document.body.style.overflow = '';
+  if (S.sheetMap) { S.sheetMap.remove(); S.sheetMap = null; }
+}
+$('#sheetBack').onclick = () => { if (history.length > 1 && S.navDepth > 0) history.back(); else location.hash = '#' + S.tab; };
+
+function tileLayer() {
+  const style = isDark() ? 'Night' : 'Default';
+  return L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`, {
+    detectRetina: true, maxZoom: 19, minZoom: 11,
+    attribution: '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>'
+  });
+}
+function makeMap(el, opts = {}) {
+  const m = L.map(el, { zoomControl: !opts.static, attributionControl: true, maxBounds: [[1.13, 103.55], [1.5, 104.15]], ...opts });
+  tileLayer().addTo(m); return m;
+}
+function stopMarker(code, opts = {}) {
+  const s = S.stops[code];
+  return L.circleMarker([s[1], s[0]], { radius: opts.r || 7, color: '#fff', weight: 2, fillColor: opts.fill || cssVar('--accent'), fillOpacity: 1 });
+}
+
+function showStop(code) {
+  const s = S.stops[code];
+  const body = openSheet('Bus stop');
+  if (!s) { body.innerHTML = `<div class="card empty"><p>Stop <b>${esc(code)}</b> isn't in the bus data.</p></div>`; return; }
+  const sv = svcAt(code);
+  body.innerHTML = `
+    <div class="stop-head"><div class="main"><h2>${esc(s[2])}</h2><div class="row muted" style="margin-top:6px"><span>${esc(s[3])}</span><span class="code">${esc(code)}</span></div></div>
+      <button class="icon-btn star" id="starBtn" aria-pressed="${isSaved(code)}" aria-label="Save this stop" title="Save this stop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z"/></svg></button></div>
+    ${boardHTML(code)}
+    <div class="row"><button class="btn" id="refreshArr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh</button><a class="btn" href="#plan" id="planFromHere">Plan from here</a></div>
+    <div class="minimap" id="stopMap"></div>
+    <div class="card"><h3>Buses at this stop</h3><div class="chips">${sv.map(n => `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('') || '<span class="muted small">None listed</span>'}</div></div>
+    <details class="fold" id="flFold"><summary>First &amp; last bus</summary><div class="fbody" id="flBody"><div class="loading"><span class="spin"></span>Loading timetable…</div></div></details>`;
+  $('#starBtn').onclick = e => { toggleSave(code); e.currentTarget.setAttribute('aria-pressed', isSaved(code)); };
+  $('#refreshArr').onclick = () => tick(true);
+  $('#planFromHere').onclick = () => { setPlace('from', { name: `${s[2]} (${code})`, lat: s[1], lng: s[0] }); };
+  requestAnimationFrame(() => {
+    S.sheetMap = makeMap('stopMap', { zoomControl: false, dragging: true, scrollWheelZoom: false }).setView([s[1], s[0]], 17);
+    stopsNear(s[1], s[0], 300, 30).forEach(n => { if (n.code !== code) stopMarker(n.code, { r: 5, fill: cssVar('--muted') }).addTo(S.sheetMap).on('click', () => location.hash = '#stop/' + n.code); });
+    stopMarker(code, { r: 9 }).addTo(S.sheetMap);
+  });
+  $('#flFold').addEventListener('toggle', async function () {
+    if (!this.open || this.dataset.loaded) return; this.dataset.loaded = 1;
+    try {
+      const fl = parseFL((await getFirstLast())[code]);
+      const dt = dayType();
+      $('#flBody').innerHTML = fl.length ? `<div class="scroll-x"><table class="fl"><thead><tr><th>Bus</th><th class="${dt === 'wd' ? 'today' : ''}">Weekdays</th><th class="${dt === 'sat' ? 'today' : ''}">Saturday</th><th class="${dt === 'sun' ? 'today' : ''}">Sun &amp; PH</th></tr></thead><tbody>${fl.map(r => `<tr><td>${esc(r.svc)}</td><td class="${dt === 'wd' ? 'today' : ''}">${r.wd.join('–')}</td><td class="${dt === 'sat' ? 'today' : ''}">${r.sat.join('–')}</td><td class="${dt === 'sun' ? 'today' : ''}">${r.sun.join('–')}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin:8px 0 0">Times the first and last bus pass this stop. A bus can appear twice at an interchange (once for each direction).</p>` : '<p class="muted small">No first/last bus times for this stop.</p>';
+    } catch { $('#flBody').innerHTML = '<p class="muted small">Couldn’t load the timetable. Check your connection and try again.</p>'; delete this.dataset.loaded; }
+  });
+  fetchArrivals(code, true).then(() => tick(false));
+  tick(false);
+}
+
+/* ========= service sheet ========= */
+function showService(no, dir = 0) {
+  const svc = S.services[no] || S.services[no.toUpperCase()] || S.services[no.toLowerCase()];
+  const body = openSheet('Bus service');
+  if (!svc) { body.innerHTML = `<div class="card empty"><p>Bus <b>${esc(no)}</b> isn't in the service list.</p></div>`; return; }
+  no = Object.keys(S.services).find(k => S.services[k] === svc);
+  const routes = svc.routes || [];
+  dir = Math.min(dir, routes.length - 1);
+  const route = routes[dir] || [];
+  const last = route[route.length - 1];
+  const loop = route[0] === last;
+  body.innerHTML = `
+    <div class="stop-head"><div class="main"><div class="svc-big">${esc(no)}</div><div class="muted" style="margin-top:4px">${esc(svc.name || '')}</div></div></div>
+    ${routes.length > 1 ? `<div class="seg" role="group" aria-label="Direction">${routes.map((r, i) => `<button data-dir="${i}" aria-pressed="${i === dir}">To ${esc(stopName(r[r.length - 1]))}</button>`).join('')}</div>` : `<div class="note">${loop ? 'Loop service: starts and ends at ' + esc(stopName(route[0])) + '.' : 'One-way service.'}</div>`}
+    <div class="minimap" id="svcMap" style="height:240px"></div>
+    <details class="fold" id="svcFl"><summary>First &amp; last bus from ${esc(stopName(route[0]))}</summary><div class="fbody" id="svcFlBody"><div class="loading"><span class="spin"></span>Loading…</div></div></details>
+    <div><h3 style="margin-bottom:8px">${route.length} stops</h3>
+    <div class="list seq">${route.map((c, i) => `<a class="item" href="#stop/${esc(c)}" style="text-decoration:none;color:inherit"><span class="dot"></span><span class="n">${i + 1}</span><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c]?.[3] || '')}</span></span><span class="code">${esc(c)}</span></a>`).join('')}</div></div>`;
+  $$('[data-dir]', body).forEach(b => b.onclick = () => { location.replace('#svc/' + encodeURIComponent(no) + '/' + b.dataset.dir); });
+  requestAnimationFrame(() => {
+    const pts = route.filter(c => S.stops[c]).map(c => [S.stops[c][1], S.stops[c][0]]);
+    S.sheetMap = makeMap('svcMap', { scrollWheelZoom: false });
+    if (!pts.length) { S.sheetMap.setView(SG_CENTRE, 12); return; }
+    L.polyline(pts, { color: cssVar('--accent'), weight: 4, opacity: .85 }).addTo(S.sheetMap);
+    route.forEach((c, i) => S.stops[c] && stopMarker(c, { r: (i === 0 || i === route.length - 1) ? 7 : 4 }).addTo(S.sheetMap).bindPopup(`<div class="pop-t">${esc(stopName(c))}</div><div class="muted small">${esc(c)}</div><button class="pop-b" onclick="location.hash='#stop/${c}'">Live times</button>`));
+    S.sheetMap.fitBounds(L.latLngBounds(pts), { padding: [20, 20] });
+  });
+  $('#svcFl').addEventListener('toggle', async function () {
+    if (!this.open || this.dataset.loaded) return; this.dataset.loaded = 1;
+    try {
+      const fl = parseFL((await getFirstLast())[route[0]]).filter(r => r.svc === no.toUpperCase());
+      const dt = dayType();
+      $('#svcFlBody').innerHTML = fl.length ? `<div class="scroll-x"><table class="fl"><thead><tr><th></th><th class="${dt === 'wd' ? 'today' : ''}">Weekdays</th><th class="${dt === 'sat' ? 'today' : ''}">Saturday</th><th class="${dt === 'sun' ? 'today' : ''}">Sun &amp; PH</th></tr></thead><tbody>${fl.map(r => `<tr><td>${esc(r.svc)}</td><td class="${dt === 'wd' ? 'today' : ''}">${r.wd.join('–')}</td><td class="${dt === 'sat' ? 'today' : ''}">${r.sat.join('–')}</td><td class="${dt === 'sun' ? 'today' : ''}">${r.sun.join('–')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small">No timetable listed for this stop.</p>';
+    } catch { $('#svcFlBody').innerHTML = '<p class="muted small">Couldn’t load the timetable.</p>'; delete this.dataset.loaded; }
+  });
+}
+
+/* ========= nearby ========= */
+let nearLayer = null, meMarker = null;
+function initNearMap() {
+  if (S.nearMap) { S.nearMap.invalidateSize(); return; }
+  const start = S.pendingCentre || S.lastLoc || SG_CENTRE;
+  S.nearMap = makeMap('nearMap').setView(start, S.lastLoc || S.pendingCentre ? 17 : 12);
+  nearLayer = L.layerGroup().addTo(S.nearMap);
+  S.nearMap.on('moveend', refreshNear);
+  refreshNear();
+  if (!S.lastLoc && !S.pendingCentre) locate(true);
+  S.pendingCentre = null;
+}
+function refreshNear() {
+  const m = S.nearMap; if (!m) return;
+  const c = m.getCenter();
+  nearLayer.clearLayers();
+  if (m.getZoom() >= 15) {
+    const b = m.getBounds(); let n = 0;
+    for (const [code, s] of Object.entries(S.stops)) {
+      if (!b.contains([s[1], s[0]])) continue;
+      if (++n > 400) break;
+      stopMarker(code, { r: 6 }).addTo(nearLayer).bindPopup(`<div class="pop-t">${esc(s[2])}</div><div class="small">${esc(s[3])} · ${code}</div><button class="pop-b" onclick="location.hash='#stop/${code}'">Live times</button>`);
+    }
+  }
+  const near = stopsNear(c.lat, c.lng, 800, 15);
+  $('#nearHint').textContent = m.getZoom() < 15 ? 'Zoom in or tap the locate button to see stops around you.' : 'Stops closest to the crosshair. Drag the map to look elsewhere.';
+  $('#nearList').innerHTML = near.length ? near.map(n => {
+    const s = S.stops[n.code], sv = svcAt(n.code);
+    return `<a class="item" href="#stop/${n.code}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(s[2])}</span><span class="s">${esc(s[3])} · ${sv.slice(0, 8).join(' ')}${sv.length > 8 ? ' +' + (sv.length - 8) : ''}</span></span><span class="dist">${fmtDist(n.d)}</span><span class="code">${n.code}</span></a>`;
+  }).join('') : `<div class="item"><span class="main muted">No bus stops within 800 m of the crosshair.</span></div>`;
+}
+function locate(quiet) {
+  if (!navigator.geolocation) { quiet || toast('Location isn’t available in this browser'); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    const ll = [p.coords.latitude, p.coords.longitude];
+    if (dist(ll[0], ll[1], SG_CENTRE[0], SG_CENTRE[1]) > 40000) { quiet || toast('You seem to be outside Singapore'); return; }
+    S.lastLoc = ll; store.set('lastLoc', ll);
+    if (S.nearMap) {
+      S.nearMap.setView(ll, 17);
+      if (meMarker) meMarker.setLatLng(ll); else meMarker = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [16, 16] }), interactive: false }).addTo(S.nearMap);
+    }
+  }, err => { quiet || toast(err.code === 1 ? 'Location permission was denied. Drag the map instead.' : 'Couldn’t get your location'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+}
+$('#locateBtn').onclick = () => locate(false);
+
+/* ========= search ========= */
+const ABBR = { station: 'stn', interchange: 'int', terminal: 'ter', terminus: 'ter', opposite: 'opp', block: 'blk', after: 'aft', before: 'bef', road: 'rd', avenue: 'ave', street: 'st', bukit: 'bt', kampong: 'kg', jalan: 'jln', lorong: 'lor', upper: 'upp', drive: 'dr', crescent: 'cres', central: 'ctrl', centre: 'ctr', center: 'ctr', primary: 'pr', secondary: 'sec', school: 'sch', building: 'bldg', church: 'ch', hospital: 'hosp', industrial: 'ind', mount: 'mt', north: 'nth', south: 'sth', east: 'e', west: 'w', point: 'pt', park: 'pk', tanjong: 'tg', place: 'pl', terrace: 'ter' };
+const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+function searchStops(q, limit = 30) {
+  q = q.trim(); if (!q) return [];
+  if (/^\d{2,5}$/.test(q)) return Object.keys(S.stops).filter(c => c.startsWith(q)).slice(0, limit);
+  const toks = norm(q).split(' ').map(t => ABBR[t] || t);
+  const res = [];
+  for (const [code, s] of Object.entries(S.stops)) {
+    const name = norm(s[2]), hay = name + ' ' + norm(s[3]) + ' ' + code;
+    const words = hay.split(' ');
+    if (toks.every(t => words.some(w => w.startsWith(t)) || hay.includes(t))) res.push({ code, score: name.startsWith(toks[0]) ? 0 : 1 });
+  }
+  return res.sort((a, b) => a.score - b.score || stopName(a.code).localeCompare(stopName(b.code))).slice(0, limit).map(r => r.code);
+}
+function searchServices(q) {
+  const k = q.trim().toLowerCase().replace(/\s+/g, ''); if (!k || k.length > 5 || !/^[0-9a-z]+$/.test(k)) return [];
+  return Object.keys(S.services).filter(n => n.toLowerCase().startsWith(k)).sort(natSort).slice(0, 16);
+}
+async function omSearch(q) {
+  const tok = await getToken().catch(() => null);
+  const r = await fetch(`${OM}/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`, tok ? { headers: { Authorization: tok } } : {});
+  const j = await r.json();
+  const seen = new Set();
+  return (j.results || []).filter(x => { const k = x.SEARCHVAL + x.LATITUDE; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6)
+    .map(x => ({ name: titleCase(x.SEARCHVAL), sub: titleCase(x.ADDRESS), lat: +x.LATITUDE, lng: +x.LONGITUDE }));
+}
+const titleCase = s => (s = String(s || ''), (s !== s.toUpperCase() || !/\s/.test(s)) ? s : s.toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase()).replace(/\bSingapore (\d{6})$/i, 'S$1'));
+let searchSeq = 0;
+const runSearch = debounce(async () => {
+  const q = $('#q').value, out = $('#searchOut'), seq = ++searchSeq;
+  if (!q.trim()) { out.innerHTML = `<p class="muted small" style="margin:0">Try “2”, “96041”, “Tampines Int” or “Changi Airport”.</p>`; return; }
+  const sv = searchServices(q), st = searchStops(q);
+  out.innerHTML = (sv.length ? `<div class="card"><h3>Bus services</h3><div class="chips">${sv.map(n => `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '') +
+    (st.length ? `<div><h3 style="margin-bottom:8px">Bus stops</h3><div class="list">${st.map(c => `<a class="item" href="#stop/${c}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c][3])} · ${svcAt(c).slice(0, 8).join(' ')}</span></span><span class="code">${c}</span></a>`).join('')}</div></div>` : '') +
+    `<div id="placeOut"></div>`;
+  if (q.trim().length >= 3 && !/^\d{1,5}$/.test(q.trim())) {
+    $('#placeOut').innerHTML = `<div class="loading small"><span class="spin"></span>Searching places…</div>`;
+    try {
+      const pl = await omSearch(q.trim()); if (seq !== searchSeq) return;
+      $('#placeOut').innerHTML = pl.length ? `<h3 style="margin-bottom:8px">Places · stops nearby</h3><div class="list">${pl.map((p, i) => `<button class="item" data-pl="${i}"><span class="main"><span class="t">${esc(p.name)}</span><span class="s">${esc(p.sub)}</span></span><span class="dist">Stops ›</span></button>`).join('')}</div>` : (sv.length || st.length ? '' : '<p class="muted small">Nothing matched. Check the spelling or try a stop code.</p>');
+      $$('[data-pl]', $('#placeOut')).forEach(b => b.onclick = () => { const p = pl[+b.dataset.pl]; S.pendingCentre = [p.lat, p.lng]; if (S.nearMap) { S.nearMap.setView([p.lat, p.lng], 17); S.pendingCentre = null; } location.hash = '#nearby'; });
+    } catch { if (seq === searchSeq) $('#placeOut').innerHTML = '<p class="muted small">Place search is unavailable right now.</p>'; }
+  } else if (!sv.length && !st.length) out.innerHTML = '<p class="muted small" style="margin:0">Nothing matched.</p>';
+}, 180);
+$('#q').addEventListener('input', runSearch);
+
+/* ========= OneMap auth ========= */
+function jwtExp(tok) { try { return JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp; } catch { return 0; } }
+async function omLogin(email, password, remember) {
+  const r = await fetch(OM + '/api/auth/post/getToken', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error(j.error || j.message || 'OneMap didn’t accept that email and password');
+  const exp = +j.expiry_timestamp || jwtExp(j.access_token) || Math.floor(Date.now() / 1000) + 3 * 86400;
+  const a = { token: j.access_token, exp, email };
+  if (remember) a.pw = password;
+  store.set('onemap', a); renderOM();
+  return a.token;
+}
+async function getToken() {
+  const a = store.get('onemap', {});
+  if (a.token && a.exp * 1000 > Date.now() + 60000) return a.token;
+  if (a.email && a.pw) return omLogin(a.email, a.pw, true);
+  return null;
+}
+function renderOM() {
+  const a = store.get('onemap', {});
+  const live = a.token && a.exp * 1000 > Date.now();
+  $('#omStatus').innerHTML = live ? `<b style="color:var(--ok)">Connected</b>${a.email ? ' as ' + esc(a.email) : ''}. ${a.pw ? 'Renews automatically.' : 'Token valid until ' + new Date(a.exp * 1000).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '.'}`
+    : (a.token ? '<b style="color:var(--danger)">Token expired.</b> Sign in again.' : '<b>Not connected.</b>');
+  $('#omDisconnect').hidden = !a.token;
+  if (a.email) $('#omEmail').value = a.email;
+}
+$('#omForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#omConnect'); btn.disabled = true; btn.textContent = 'Connecting…';
+  try { await omLogin($('#omEmail').value.trim(), $('#omPw').value, $('#omRemember').checked); $('#omPw').value = ''; toast('OneMap connected'); }
+  catch (err) { toast(String(err.message || err)); }
+  finally { btn.disabled = false; btn.textContent = 'Connect OneMap'; }
+});
+$('#omDisconnect').onclick = () => { store.del('onemap'); renderOM(); toast('OneMap disconnected'); };
+$('#omTokenSave').onclick = () => {
+  const t = $('#omToken').value.trim(); if (!t) return;
+  const exp = jwtExp(t) || Math.floor(Date.now() / 1000) + 3 * 86400;
+  store.set('onemap', { token: t, exp }); $('#omToken').value = ''; renderOM(); toast('Token saved');
+};
+
+/* ========= journey planner ========= */
+function setPlace(which, p) {
+  S.plan[which] = p; $('#' + which + 'In').value = p ? p.name : '';
+}
+function setupAC(which) {
+  const inp = $('#' + which + 'In'), box = $('#' + which + 'Sugg');
+  let items = [], seq = 0;
+  const show = () => {
+    box.hidden = !items.length;
+    box.innerHTML = items.map((p, i) => `<button type="button" class="item" data-i="${i}"><span class="main"><span class="t">${esc(p.name)}</span><span class="s">${esc(p.sub || '')}</span></span>${p.code ? `<span class="code">${esc(p.code)}</span>` : ''}</button>`).join('');
+  };
+  const run = debounce(async () => {
+    const q = inp.value.trim(), my = ++seq;
+    if (q.length < 2) { items = []; show(); return; }
+    const local = searchStops(q, 4).map(c => ({ name: `${stopName(c)} (${c})`, sub: S.stops[c][3] + ' · bus stop', lat: S.stops[c][1], lng: S.stops[c][0], code: c }));
+    items = local; show();
+    if (q.length >= 3) { try { const pl = await omSearch(q); if (my === seq) { items = [...pl, ...local]; show(); } } catch {} }
+  }, 250);
+  inp.addEventListener('input', () => { S.plan[which] = null; run(); });
+  inp.addEventListener('focus', () => { if (items.length && !S.plan[which]) box.hidden = false; });
+  inp.addEventListener('blur', () => setTimeout(() => box.hidden = true, 180));
+  box.addEventListener('mousedown', e => e.preventDefault());
+  box.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; setPlace(which, items[+b.dataset.i]); box.hidden = true; });
+}
+setupAC('from'); setupAC('to');
+$('#fromMe').onclick = () => {
+  if (!navigator.geolocation) return toast('Location isn’t available in this browser');
+  $('#fromIn').value = 'Finding you…';
+  navigator.geolocation.getCurrentPosition(p => { setPlace('from', { name: 'My location', lat: p.coords.latitude, lng: p.coords.longitude }); S.lastLoc = [p.coords.latitude, p.coords.longitude]; store.set('lastLoc', S.lastLoc); },
+    () => { $('#fromIn').value = ''; toast('Couldn’t get your location'); }, { enableHighAccuracy: true, timeout: 10000 });
+};
+$('#swapOD').onclick = () => { const f = S.plan.from, t = S.plan.to; setPlace('from', t); setPlace('to', f); };
+$$('#modeSeg button').forEach(b => b.onclick = () => { S.plan.mode = b.dataset.mode; $$('#modeSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+$$('#whenSeg button').forEach(b => b.onclick = () => {
+  S.plan.when = b.dataset.when; $$('#whenSeg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $('#whenAt').hidden = S.plan.when !== 'at';
+  if (S.plan.when === 'at' && !$('#whenAt').value) { const d = new Date(Date.now() + 30 * 60000); $('#whenAt').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+});
+
+async function onemapRoute(from, to, when, mode) {
+  const tok = await getToken();
+  if (!tok) { const e = new Error('no-token'); e.code = 'no-token'; throw e; }
+  const date = `${pad(when.getMonth() + 1)}-${pad(when.getDate())}-${when.getFullYear()}`;
+  const time = `${pad(when.getHours())}:${pad(when.getMinutes())}:00`;
+  const u = `${OM}/api/public/routingsvc/route?start=${from.lat},${from.lng}&end=${to.lat},${to.lng}&routeType=pt&date=${date}&time=${time}&mode=${mode}&maxWalkDistance=1000&numItineraries=3`;
+  const r = await fetch(u, { headers: { Authorization: tok } });
+  if (r.status === 401 || r.status === 403) { const a = store.get('onemap', {}); a.exp = 0; store.set('onemap', a); renderOM(); const e = new Error('auth'); e.code = 'auth'; throw e; }
+  const j = await r.json().catch(() => ({}));
+  const its = j?.plan?.itineraries;
+  if (!its?.length) { const e = new Error(j?.error?.msg || j?.error || 'No journey found'); e.code = 'none'; throw e; }
+  return its;
+}
+
+/* Bus-only planner: direct buses and one-transfer trips between stops near each end. */
+function busPlanner(from, to, when) {
+  const WALK = 75, PER_STOP = 1.6, WAIT = 5, XFER = 3; // m/min, min per stop, min wait per boarding, transfer penalty
+  let O = stopsNear(from.lat, from.lng, 500, 10), D = stopsNear(to.lat, to.lng, 500, 10);
+  if (O.length < 3) O = stopsNear(from.lat, from.lng, 1000, 5);
+  if (D.length < 3) D = stopsNear(to.lat, to.lng, 1000, 5);
+  if (!O.length || !D.length) return [];
+  const dWalk = new Map(D.map(d => [d.code, d.d]));
+  const options = [];
+  // reach[stop] = best first leg arriving at that stop
+  const reach = new Map();
+  for (const o of O) for (const r of S.stopRoutes[o.code] || []) {
+    const route = S.services[r.no].routes[r.dir];
+    for (let j = r.idx + 1; j < route.length && j - r.idx <= 70; j++) {
+      const c = route[j], t = o.d / WALK + WAIT + (j - r.idx) * PER_STOP;
+      if (dWalk.has(c)) options.push({ t: t + dWalk.get(c) / WALK, legs: [{ kind: 'walk', m: o.d, to: o.code }, { kind: 'bus', no: r.no, from: o.code, to: c, n: j - r.idx }, { kind: 'walk', m: dWalk.get(c), toPlace: to.name }] });
+      const prev = reach.get(c);
+      if (!prev || t < prev.t) reach.set(c, { t, no: r.no, from: o.code, n: j - r.idx, walk: o.d });
+    }
+  }
+  const destSvcs = new Set(D.flatMap(d => (S.stopRoutes[d.code] || []).map(r => r.no)));
+  for (const d of D) for (const r of S.stopRoutes[d.code] || []) {
+    const route = S.services[r.no].routes[r.dir];
+    for (let i = r.idx - 1; i >= 0 && r.idx - i <= 70; i--) {
+      const x = route[i];
+      // transfer at the same stop or one within 150 m (e.g. across the road)
+      const cands = reach.has(x) ? [[x, 0]] : [];
+      if (!cands.length) for (const n of stopsNear(S.stops[x][1], S.stops[x][0], 150, 4)) if (n.code !== x && reach.has(n.code)) cands.push([n.code, n.d]);
+      for (const [xc, xw] of cands) {
+        const a = reach.get(xc); if (a.no === r.no) continue;
+        const t = a.t + XFER + xw / WALK + WAIT + (r.idx - i) * PER_STOP + d.d / WALK;
+        options.push({ t, legs: [{ kind: 'walk', m: a.walk, to: a.from }, { kind: 'bus', no: a.no, from: a.from, to: xc, n: a.n }, ...(xw ? [{ kind: 'walk', m: xw, to: x }] : []), { kind: 'bus', no: r.no, from: x, to: d.code, n: r.idx - i }, { kind: 'walk', m: d.d, toPlace: to.name }] });
+      }
+    }
+  }
+  // best option per bus combination
+  const best = new Map();
+  for (const o of options) {
+    const key = o.legs.filter(l => l.kind === 'bus').map(l => l.no).join('>');
+    if (!best.has(key) || o.t < best.get(key).t) best.set(key, o);
+  }
+  const sorted = [...best.values()].sort((a, b) => (a.legs.length - b.legs.length) * 4 + (a.t - b.t));
+  const direct = sorted.filter(o => o.legs.filter(l => l.kind === 'bus').length === 1);
+  const xfer = sorted.filter(o => o.legs.filter(l => l.kind === 'bus').length === 2).sort((a, b) => a.t - b.t);
+  direct.sort((a, b) => a.t - b.t);
+  const bestDirect = direct.length ? direct[0].t : Infinity;
+  const pick = [...direct.slice(0, 4), ...xfer.filter(o => o.t < bestDirect - 3).slice(0, direct.length ? 2 : 5)].sort((a, b) => a.t - b.t).slice(0, 5);
+  const start = when.getTime();
+  return pick.map(o => {
+    let t = start;
+    const legs = o.legs.map(l => {
+      if (l.kind === 'walk') { const dur = l.m / WALK * 60; const leg = { mode: 'WALK', distance: l.m, duration: dur, startTime: t, to: { name: l.toPlace || stopName(l.to) } }; t += dur * 1000; return leg; }
+      const dur = (WAIT + l.n * PER_STOP) * 60;
+      const leg = { mode: 'BUS', route: l.no, from: { name: stopName(l.from), stopCode: l.from }, to: { name: stopName(l.to), stopCode: l.to }, numIntermediateStops: l.n - 1, duration: dur, startTime: t, estimate: true };
+      t += dur * 1000; return leg;
+    }).filter(l => !(l.mode === 'WALK' && l.distance < 15));
+    return { duration: (t - start) / 1000, startTime: start, endTime: t, legs, estimate: true, walkDistance: o.legs.filter(l => l.kind === 'walk').reduce((s, l) => s + l.m, 0), transfers: o.legs.filter(l => l.kind === 'bus').length - 1 };
+  });
+}
+
+function legColor(l) {
+  if (l.mode === 'BUS') return BUS_COLOR;
+  const k = String(l.route || l.routeShortName || '').replace(/[^A-Z]/gi, '').slice(0, 2).toUpperCase();
+  return LINE_COLORS[k] || '#5A6A64';
+}
+function legLabel(l) {
+  if (l.mode === 'WALK') return 'Walk';
+  if (l.mode === 'BUS') return String(l.route || l.routeShortName || 'Bus');
+  return String(l.route || l.routeShortName || l.mode).toUpperCase();
+}
+const busNo = l => String(l.route || l.routeShortName || '').trim();
+function itinHTML(it, idx, open) {
+  const mins = Math.max(1, Math.round(it.duration / 60));
+  const total = it.legs.reduce((s, l) => s + (l.duration || 0), 0) || 1;
+  const transit = it.legs.filter(l => l.mode !== 'WALK');
+  const strip = it.legs.map(l => {
+    const w = Math.max(6, (l.duration || 0) / total * 100);
+    return l.mode === 'WALK' ? `<span class="seg-l walk" style="flex:${w}" title="Walk"></span>` : `<span class="seg-l" style="flex:${w};background:${legColor(l)}">${esc(legLabel(l))}</span>`;
+  }).join('');
+  const fare = it.fare && !isNaN(+it.fare) ? `$${(+it.fare).toFixed(2)} adult` : '';
+  const meta = [`${fmtTime(it.startTime)} → ${fmtTime(it.endTime)}`, it.transfers != null ? `${it.transfers} transfer${it.transfers === 1 ? '' : 's'}` : '', it.walkDistance ? `${fmtDist(it.walkDistance)} walk` : '', fare].filter(Boolean).join(' · ');
+  const legs = it.legs.map(l => {
+    const lm = Math.max(1, Math.round((l.duration || 0) / 60));
+    if (l.mode === 'WALK') return `<div class="leg"><span class="badge walk">Walk</span><div><div class="lt">Walk ${fmtDist(l.distance || 0)} · ${lm} min</div><div class="ls">to ${esc(titleCase(l.to?.name || ''))}</div></div></div>`;
+    const n = l.numIntermediateStops != null ? l.numIntermediateStops + 1 : (l.intermediateStops?.length ?? null);
+    if (l.mode === 'BUS') {
+      const code = l.from?.stopCode && S.stops[l.from.stopCode] ? l.from.stopCode : null;
+      const no = busNo(l);
+      return `<div class="leg"><span class="badge" style="background:${legColor(l)}">${esc(no)}</span><div style="min-width:0"><div class="lt">Bus ${esc(no)}${n ? ` · ${n} stop${n > 1 ? 's' : ''}` : ''}${l.estimate ? ` · ~${lm} min` : ` · ${lm} min`}</div>
+        <div class="ls">Board at ${code ? `<a href="#stop/${code}">${esc(titleCase(l.from.name))} (${code})</a>` : esc(titleCase(l.from?.name || ''))}<br>Alight at ${esc(titleCase(l.to?.name || ''))}${l.to?.stopCode ? ' (' + esc(l.to.stopCode) + ')' : ''}</div>
+        ${code ? boardHTML(code, { compact: true, only: [no] }) : ''}</div></div>`;
+    }
+    return `<div class="leg"><span class="badge" style="background:${legColor(l)}">${esc(legLabel(l))}</span><div><div class="lt">${l.mode === 'TRAM' ? 'LRT' : 'MRT'} ${esc(legLabel(l))}${n ? ` · ${n} stop${n > 1 ? 's' : ''}` : ''} · ${lm} min</div>
+      <div class="ls">${esc(titleCase(l.from?.name || ''))} → ${esc(titleCase(l.to?.name || ''))}${l.headsign ? '<br>Towards ' + esc(titleCase(l.headsign)) : ''}</div></div></div>`;
+  }).join('');
+  return `<div class="card itin"><button class="ih" data-it="${idx}" aria-expanded="${open}">
+      <span class="sum"><span class="dur">${it.estimate ? '~' : ''}${mins}<small>min</small></span><span class="meta">${esc(meta)}</span></span>
+      <span class="strip">${strip}</span></button>
+    <div class="legs" ${open ? '' : 'hidden'}>${legs}</div></div>`;
+}
+$('#planForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const { from, to, mode } = S.plan, out = $('#planOut');
+  if (!from || !to) { toast(!from ? 'Choose a starting point from the list' : 'Choose a destination from the list'); return; }
+  const when = S.plan.when === 'at' && $('#whenAt').value ? new Date($('#whenAt').value) : new Date();
+  out.innerHTML = `<div class="loading"><span class="spin"></span>Finding routes…</div>`;
+  let its = null, note = '';
+  if (mode !== 'BUS' || store.get('onemap', {}).token) {
+    try { its = await onemapRoute(from, to, when, mode); }
+    catch (err) {
+      if (err.code === 'no-token') note = mode === 'BUS' ? '' : `<div class="note warn">Bus + MRT routes need a OneMap account. <a href="#more">Connect OneMap</a> under More. Showing bus-only estimates for now.</div>`;
+      else if (err.code === 'auth') note = `<div class="note warn">Your OneMap sign-in expired. <a href="#more">Sign in again</a> under More. Showing bus-only estimates for now.</div>`;
+      else if (mode === 'RAIL') { out.innerHTML = `<div class="note warn">${esc(err.message)}. Try Bus + MRT.</div>`; return; }
+      else note = `<div class="note">OneMap couldn’t plan this trip (${esc(err.message)}). Showing bus-only estimates instead.</div>`;
+    }
+  }
+  if (!its) {
+    its = busPlanner(from, to, when);
+    if (!its.length) { out.innerHTML = note + `<div class="card empty"><p>No bus route found within 1 km of both ends.</p><p class="muted small">Try a nearer starting point or connect OneMap for Bus + MRT.</p></div>`; return; }
+    note += `<div class="note">Bus-only estimates: ride times assume about ${'1.6'} min per stop plus a short wait. Live times show for the first bus.</div>`;
+  }
+  out.innerHTML = note + `<h3>${esc(from.name)} → ${esc(to.name)}</h3>` + its.map((it, i) => itinHTML(it, i, i === 0)).join('');
+  $$('[data-it]', out).forEach(b => b.onclick = () => { const l = b.nextElementSibling; l.hidden = !l.hidden; b.setAttribute('aria-expanded', !l.hidden); tick(false); });
+  tick(false);
+});
+
+/* ========= routing ========= */
+S.navDepth = 0;
+function setTab(t) {
+  S.tab = t;
+  $$('section.view[data-view]').forEach(s => s.hidden = s.dataset.view !== t);
+  $$('nav.tabs a').forEach(a => a.dataset.tab === t ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  if (t === 'saved') renderSaved();
+  if (t === 'nearby') requestAnimationFrame(initNearMap);
+  if (t === 'search' && !$('#searchOut').innerHTML) runSearch();
+  if (t === 'more') { renderOM(); renderSync(); $('#dataInfo').textContent = `${Object.keys(S.stops).length.toLocaleString()} stops · ${Object.keys(S.services).length} services loaded.`; }
+  tick(false);
+}
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith('sync=')) { importCode(h.slice(5)); history.replaceState(null, '', location.pathname + location.search + '#saved'); closeSheet(); setTab('saved'); return; }
+  const [view, a, b] = h.split('/');
+  const first = S.first; S.first = false;
+  if (view === 'stop' && a) { if (!first) S.navDepth++; return showStop(a); }
+  if (view === 'svc' && a) { if (!first) S.navDepth++; return showService(a, +(b || 0)); }
+  closeSheet(); S.navDepth = 0;
+  setTab(['saved', 'nearby', 'search', 'plan', 'more'].includes(view) ? view : (S.saved.length ? 'saved' : 'nearby'));
+}
+window.addEventListener('hashchange', route);
+$('#refreshData').onclick = async () => {
+  ['stops.min.json', 'services.min.json', 'firstlast.min.json'].forEach(n => store.del('cache.' + n));
+  S.firstlast = null; toast('Refreshing…'); await boot(); toast('Bus data refreshed');
+};
+
+/* ========= boot ========= */
+async function boot() {
+  try {
+    const [stops, services] = await Promise.all([loadJSON('stops.min.json', 7), loadJSON('services.min.json', 7)]);
+    S.stops = stops; S.services = services; buildIndex();
+    $('#boot').hidden = true;
+    S.first = true; route();
+  } catch (e) {
+    $('#boot').innerHTML = `<div class="card empty" style="width:100%"><p><strong>Couldn’t load bus data.</strong></p><p class="muted small">Check your internet connection, then try again.</p><button class="btn primary" onclick="location.reload()">Try again</button></div>`;
+  }
+}
+boot();
+</script>
+</body>
+</html>
