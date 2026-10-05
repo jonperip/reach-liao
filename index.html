@@ -54,7 +54,7 @@ header.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:calc(en
 .brand .pole{width:10px;height:22px;border-radius:3px;background:var(--accent);box-shadow:inset 0 -7px 0 var(--led)}
 .top .sub{margin-left:auto;font:600 12px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
 main{padding:16px 16px 0}
-section.view{display:flex;flex-direction:column;gap:16px}
+.view{display:flex;flex-direction:column;gap:16px}
 h2{font:800 22px/1.15 var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
 h3{font:700 13px/1.2 var(--f-display);margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .muted{color:var(--muted)}
@@ -123,8 +123,19 @@ h3{font:700 13px/1.2 var(--f-display);margin:0;text-transform:uppercase;letter-s
 
 /* saved */
 .saved-card{padding:0;overflow:hidden;gap:0}
-.saved-card .sh{display:flex;align-items:center;gap:10px;padding:12px 14px;border:0;background:transparent;text-align:left;width:100%}
-.saved-card .sh .main{flex:1;min-width:0}
+.saved-card .sh{display:flex;align-items:center;gap:6px;padding:8px 10px 8px 6px}
+.saved-card .sh .main{flex:1;min-width:0;text-decoration:none;color:inherit;padding:4px 2px}
+.saved-card .sh .main:hover .t{text-decoration:underline;text-underline-offset:3px}
+.icon-btn.sm{width:36px;height:36px;border-radius:9px}
+.icon-btn.sm svg{width:18px;height:18px}
+.icon-btn:disabled{opacity:.3;cursor:default}
+.fold-btn{border-color:transparent;background:transparent}
+.fold-btn svg{transition:transform .18s ease}
+.saved-card.collapsed .fold-btn svg{transform:rotate(-90deg)}
+.order{display:flex;gap:4px;flex:none}
+.saved-card.moved{animation:moved .9s ease}
+@keyframes moved{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion: reduce){.fold-btn svg{transition:none}.saved-card.moved{animation:none}}
 .saved-card .sh .t{display:block;font:800 16px/1.2 var(--f-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .saved-card .sh .s{display:block;font-size:13px;color:var(--muted)}
 .saved-card .board{border-radius:0;border-left:0;border-right:0;border-bottom:0}
@@ -229,7 +240,7 @@ textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
 
     <!-- SAVED -->
     <section class="view" data-view="saved" hidden>
-      <div class="row"><h2>Saved stops</h2><span class="spacer"></span><button class="btn ghost" id="editSaved" aria-pressed="false">Edit</button></div>
+      <div class="row"><h2>Saved stops</h2><span class="spacer"></span><button class="btn ghost" id="foldAll">Collapse all</button><button class="btn ghost" id="editSaved" aria-pressed="false">Edit</button></div>
       <div id="savedList" class="view" style="gap:14px"></div>
     </section>
 
@@ -542,6 +553,8 @@ function toggleSave(code) {
 function renderSaved() {
   const out = $('#savedList');
   $('#editSaved').hidden = !S.saved.length;
+  $('#foldAll').hidden = !S.saved.length;
+  $('#foldAll').textContent = S.saved.length && S.saved.every(s => s.collapsed) ? 'Expand all' : 'Collapse all';
   $('#editSaved').textContent = S.editing ? 'Done' : 'Edit';
   $('#editSaved').setAttribute('aria-pressed', S.editing);
   if (!S.saved.length) {
@@ -561,19 +574,40 @@ function renderSaved() {
     const edit = S.editing ? `<div class="edit-tools">
         <div class="field"><label for="lbl${i}">Nickname</label><input class="input" id="lbl${i}" data-lbl="${i}" value="${esc(s.label)}" placeholder="e.g. Home, Work, Campus"></div>
         <div class="field"><label>Show only these buses (none ticked = all)</label><div class="chips">${svcAt(s.code).map(n => `<button class="chip${s.only?.includes(n) ? ' on' : ''}" data-only-i="${i}" data-n="${esc(n)}" aria-pressed="${!!s.only?.includes(n)}">${esc(n)}</button>`).join('')}</div></div>
-        <div class="row"><button class="btn" data-mv="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''}>Move up</button><button class="btn" data-mv="${i}" data-d="1" ${i === S.saved.length - 1 ? 'disabled' : ''}>Move down</button><span class="spacer"></span><button class="btn danger" data-rm="${i}">Remove</button></div>
+        <div class="row"><span class="spacer"></span><button class="btn danger" data-rm="${i}">Remove from Saved</button></div>
       </div>` : '';
-    return `<div class="card saved-card">
-      <a class="sh" href="#stop/${esc(s.code)}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(title)}</span><span class="s">${esc(sub)}</span></span><span class="code">${esc(s.code)}</span></a>
-      ${boardHTML(s.code, { compact: true, only: s.only })}${edit}</div>`;
+    const last = S.saved.length - 1;
+    const order = last ? `<div class="order">
+        <button class="icon-btn sm" data-mv="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(title)} up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        <button class="icon-btn sm" data-mv="${i}" data-d="1" ${i === last ? 'disabled' : ''} aria-label="Move ${esc(title)} down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+      </div>` : '';
+    return `<div class="card saved-card${s.collapsed ? ' collapsed' : ''}" data-i="${i}">
+      <div class="sh">
+        <button class="icon-btn sm fold-btn" data-fold="${i}" aria-expanded="${!s.collapsed}" aria-label="${s.collapsed ? 'Show' : 'Hide'} live times for ${esc(title)}" title="${s.collapsed ? 'Show' : 'Hide'} live times"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <a class="main" href="#stop/${esc(s.code)}"><span class="t">${esc(title)}</span><span class="s">${esc(sub)}</span></a>
+        ${order}
+      </div>
+      ${s.collapsed ? '' : boardHTML(s.code, { compact: true, only: s.only })}${edit}</div>`;
   }).join('');
   tick(false);
 }
 $('#editSaved').onclick = () => { S.editing = !S.editing; renderSaved(); };
+$('#foldAll').onclick = () => { const fold = !S.saved.every(s => s.collapsed); S.saved.forEach(s => s.collapsed = fold); saveSaved(); renderSaved(); };
 $('#savedList').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.rm != null) { S.saved.splice(+b.dataset.rm, 1); saveSaved(); renderSaved(); }
-  else if (b.dataset.mv != null) { const i = +b.dataset.mv, j = i + +b.dataset.d; [S.saved[i], S.saved[j]] = [S.saved[j], S.saved[i]]; saveSaved(); renderSaved(); }
+  else if (b.dataset.fold != null) { const s = S.saved[+b.dataset.fold]; s.collapsed = !s.collapsed; saveSaved(); renderSaved(); $(`[data-fold="${b.dataset.fold}"]`)?.focus(); }
+  else if (b.dataset.mv != null) {
+    const i = +b.dataset.mv, d = +b.dataset.d, j = i + d;
+    if (j < 0 || j >= S.saved.length) return;
+    [S.saved[i], S.saved[j]] = [S.saved[j], S.saved[i]]; saveSaved(); renderSaved();
+    const card = $(`.saved-card[data-i="${j}"]`);
+    if (card) {
+      card.classList.add('moved'); setTimeout(() => card.classList.remove('moved'), 950);
+      card.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      const same = $(`[data-mv="${j}"][data-d="${d}"]`, card); (same && !same.disabled ? same : $(`[data-mv="${j}"]:not([disabled])`, card))?.focus({ preventScroll: true });
+    }
+  }
   else if (b.dataset.onlyI != null) {
     const s = S.saved[+b.dataset.onlyI], n = b.dataset.n; s.only ||= [];
     s.only = s.only.includes(n) ? s.only.filter(x => x !== n) : [...s.only, n];
