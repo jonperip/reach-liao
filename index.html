@@ -22,7 +22,7 @@
   --panel:#111614; --panel-2:#1B2220; --panel-line:#2A3330; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
   --led:#FFB627; --led-dim:#9A7A35;
   --sea:#2FBF71; --sda:#F2A93B; --lsd:#E5484D; --walk:#8C9A95;
-  --danger:#B42318; --ok:#0B6E4F;
+  --danger:#B42318; --ok:#0B6E4F; --nus:#C25400; --nus-led:#FF9B45;
   --f-display:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-body:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-mono:"Overpass Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -33,12 +33,12 @@
   --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
   --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
   --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
-  --danger:#FF7A6E; --ok:#3CC08F; color-scheme: dark; } }
+  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; color-scheme: dark; } }
 :root[data-theme="dark"]{
   --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
   --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
   --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
-  --danger:#FF7A6E; --ok:#3CC08F; color-scheme: dark; }
+  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; color-scheme: dark; }
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -118,6 +118,11 @@ h3{font:700 13px/1.2 var(--f-display);margin:0;text-transform:uppercase;letter-s
 .bfoot i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .bfoot .upd{margin-left:auto}
 .board .msg{padding:14px 12px;font-size:13px;color:var(--panel-muted)}
+.board .msg a{color:var(--nus-led)}
+.svc.nus{border-color:var(--nus-led);color:var(--nus-led)}
+.chip.nus{border-color:var(--nus);box-shadow:inset 3px 0 0 var(--nus)}
+.tag-nus{font:700 10px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--nus);border:1px solid var(--nus);border-radius:5px;padding:4px 5px 3px;flex:none}
+.bfoot .ring{display:inline-block;width:6px;height:6px;border:1.5px solid currentColor;border-radius:50%;margin-right:4px;vertical-align:middle}
 .board.compact .arow{padding:7px 12px}
 .board.compact .svc{font-size:16px;padding:6px 4px 4px}
 
@@ -334,6 +339,16 @@ textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
         </div>
       </div>
 
+      <div class="card" id="nusCard">
+        <h3>NUS shuttle live times</h3>
+        <p style="margin:0" class="small" id="nusStatus"></p>
+        <p style="margin:0" class="small muted">NUS only shares live shuttle times with its own app, so Reach Liao reads them through a small relay that runs free on Cloudflare. <a href="https://github.com/jonperip/reach-liao#nus-shuttle-relay" target="_blank" rel="noopener">Relay setup steps</a>. Without it, NUS stops still show their routes and usual hours.</p>
+        <form id="nusForm" class="field" autocomplete="off">
+          <label for="nusRelayIn">Relay address</label>
+          <div class="with-btn"><input class="input" id="nusRelayIn" type="url" inputmode="url" placeholder="https://reach-liao-nus.yourname.workers.dev"><button class="btn" type="submit" id="nusRelaySave">Save &amp; test</button></div>
+        </form>
+      </div>
+
       <div class="card">
         <h3>OneMap journey planning</h3>
         <p style="margin:0" class="small" id="omStatus"></p>
@@ -386,6 +401,97 @@ const SG_CENTRE = [1.3521, 103.8198];
 const REFRESH_MS = 25000;
 const LINE_COLORS = {EW:'#009645',CG:'#009645',NS:'#D42E12',NE:'#9900AA',CC:'#FA9E0D',CE:'#FA9E0D',DT:'#005EC4',TE:'#9D5B25',BP:'#748477',SK:'#748477',PG:'#748477',ST:'#748477',PT:'#748477',SW:'#748477',SE:'#748477',PE:'#748477',PW:'#748477',JE:'#0099AA',JS:'#0099AA',JW:'#0099AA',CR:'#97C616'};
 const BUS_COLOR = '#0B6E4F';
+
+/* NUS Internal Shuttle Bus (ISB). Stop list and coordinates from the NUS NextBus API; route
+   stop order is the best available community estimate. Usual hours: Mon-Fri / Sat / Sun & PH. */
+const NUS_RELAY_DEFAULT = '';
+const NUS_STOPS = {
+  'AS5': [103.771475, 1.293619, 'AS 5'], 'BG-MRT': [103.815914, 1.322614, 'Botanic Gardens MRT (PUDO)'],
+  'BIZ2': [103.775068, 1.293223, 'BIZ 2'], 'CG': [103.816276, 1.323337, 'College Green'],
+  'CLB': [103.772569, 1.296544, 'Central Library'], 'COM3': [103.775217, 1.294431, 'COM 3'],
+  'HSSML-OPP': [103.774978, 1.292798, 'Opp HSSML'], 'IT': [103.772688, 1.297204, 'Information Technology'],
+  'JP-SCH-16151': [103.769904, 1.300770, 'The Japanese Primary School'], 'KR-MRT': [103.784413, 1.294820, 'Kent Ridge MRT'],
+  'KR-MRT-OPP': [103.784556, 1.294962, 'Opp Kent Ridge MRT'], 'KRB': [103.769997, 1.294430, 'Kent Ridge Bus Terminal'],
+  'KV': [103.769455, 1.301899, 'Kent Vale'], 'LT13': [103.770635, 1.294552, 'LT 13'],
+  'LT13-OPP': [103.770617, 1.295340, 'Ventus'], 'LT27': [103.780941, 1.297421, 'LT 27'],
+  'MUSEUM': [103.773690, 1.301081, 'Museum'], 'NUSS-OPP': [103.772618, 1.293208, 'Opp NUSS'],
+  'OTH': [103.817774, 1.319796, 'Oei Tiong Ham Building'], 'PGP': [103.780419, 1.291765, "Prince George's Park"],
+  'PGPR': [103.781153, 1.290994, "Prince George's Park Foyer"], 'RAFFLES': [103.772703, 1.300946, 'Raffles Hall'],
+  'S17': [103.780707, 1.297488, 'S 17'], 'SDE3-OPP': [103.769603, 1.297799, 'Opp SDE 3'],
+  'TCOMS': [103.776898, 1.293654, 'TCOMS'], 'TCOMS-OPP': [103.776715, 1.293789, 'Opp TCOMS'],
+  'UHALL': [103.778075, 1.297372, 'University Hall'], 'UHALL-OPP': [103.778088, 1.297574, 'Opp University Hall'],
+  'UHC': [103.776103, 1.298910, 'University Health Centre'], 'UHC-OPP': [103.775612, 1.298788, 'Opp University Health Centre'],
+  'UTOWN': [103.774621, 1.303876, 'University Town'], 'YIH': [103.774377, 1.298885, 'Yusof Ishak House'],
+  'YIH-OPP': [103.774118, 1.298904, 'Opp Yusof Ishak House']
+};
+// public LTA bus stop at (or within 50 m of) each NUS stop
+const NUS_LTA = { 'KRB': '16009', 'LT27': '18301', 'S17': '18309', 'KR-MRT': '18331', 'KR-MRT-OPP': '18339', 'UHALL': '18311', 'UHALL-OPP': '18319', 'UHC': '18329', 'UHC-OPP': '18321', 'YIH': '16171', 'YIH-OPP': '16179', 'CLB': '16181', 'IT': '16189', 'MUSEUM': '16161', 'RAFFLES': '16169', 'JP-SCH-16151': '16151', 'SDE3-OPP': '16141', 'BG-MRT': '41021', 'CG': '41029' };
+const NUS_ROUTES = {
+  A1: ['KRB', 'LT13', 'AS5', 'BIZ2', 'TCOMS-OPP', 'PGP', 'KR-MRT', 'LT27', 'UHALL', 'UHC-OPP', 'YIH', 'CLB', 'KRB'],
+  A2: ['KRB', 'IT', 'YIH-OPP', 'MUSEUM', 'UHC', 'UHALL-OPP', 'S17', 'KR-MRT-OPP', 'PGPR', 'TCOMS', 'HSSML-OPP', 'NUSS-OPP', 'LT13-OPP', 'KRB'],
+  D1: ['COM3', 'HSSML-OPP', 'NUSS-OPP', 'LT13-OPP', 'IT', 'YIH-OPP', 'MUSEUM', 'UTOWN', 'YIH', 'CLB', 'LT13', 'AS5', 'BIZ2', 'COM3'],
+  D2: ['COM3', 'TCOMS-OPP', 'PGP', 'KR-MRT', 'LT27', 'UHALL', 'UHC-OPP', 'MUSEUM', 'UTOWN', 'UHC', 'UHALL-OPP', 'S17', 'KR-MRT-OPP', 'PGP', 'TCOMS', 'COM3'],
+  K: ['PGP', 'KR-MRT', 'LT27', 'UHALL', 'UHC-OPP', 'YIH', 'CLB', 'SDE3-OPP', 'JP-SCH-16151', 'KV', 'MUSEUM', 'UHC', 'UHALL-OPP', 'S17', 'KR-MRT-OPP', 'PGP'],
+  P: ['KV', 'CG', 'OTH', 'BG-MRT', 'KR-MRT', 'UHC-OPP', 'UTOWN'],
+  R1: ['KV', 'MUSEUM', 'UTOWN', 'YIH', 'CLB', 'LT13', 'AS5', 'BIZ2', 'PGP'],
+  R2: ['PGP', 'HSSML-OPP', 'NUSS-OPP', 'LT13-OPP', 'IT', 'YIH-OPP', 'UTOWN', 'RAFFLES', 'KV']
+};
+const NUS_INFO = {
+  A1: ['Kent Ridge Bus Terminal loop, anti-clockwise', 'Loop via PGP · KR MRT'],
+  A2: ['Kent Ridge Bus Terminal loop, clockwise', 'Loop via KR MRT · PGP'],
+  D1: ['COM 3 ⇄ University Town via Kent Ridge Crescent', 'COM 3 ⇄ UTown'],
+  D2: ['COM 3 ⇄ University Town via Kent Ridge MRT', 'COM 3 ⇄ UTown via KR MRT'],
+  K: ["Prince George's Park loop via University Town and Kent Vale", 'Loop via UTown · Kent Vale'],
+  P: ['Kent Vale ⇄ Bukit Timah Campus via Botanic Gardens MRT', 'Kent Vale ⇄ Bukit Timah'],
+  R1: ["Kent Vale → Prince George's Park via University Town", 'To PGP via UTown'],
+  R2: ["Prince George's Park → Kent Vale via University Town", 'To Kent Vale via UTown']
+};
+const NUS_HOURS = { // [Mon-Fri, Sat, Sun & PH]; null = no service
+  A1: [['07:15', '23:00'], ['07:15', '23:00'], ['09:07', '23:00']],
+  A2: [['07:15', '23:00'], ['07:15', '23:00'], ['09:00', '23:00']],
+  D1: [['07:15', '23:00'], ['07:20', '23:00'], ['09:10', '23:00']],
+  D2: [['07:15', '23:00'], ['07:15', '23:00'], ['09:00', '23:00']],
+  K: [['07:04', '23:04'], ['07:04', '19:44'], null],
+  P: [['08:20', '17:25'], null, null],
+  R1: [['07:40', '19:30'], null, null],
+  R2: [['08:20', '19:30'], null, null]
+};
+const isNus = code => String(code).startsWith('NUS:');
+const nusId = code => String(code).slice(4);
+const codeLabel = code => isNus(code) ? nusId(code) : code;
+const nusRouteOf = name => { const k = String(name || '').toUpperCase().split(/[\s\-_(]/)[0]; return NUS_ROUTES[k] ? k : String(name || '').toUpperCase(); };
+function nusHoursToday(route) {
+  const h = NUS_HOURS[route]; if (!h) return { txt: '', on: true };
+  const day = new Date().getDay(), slot = h[day === 0 ? 2 : day === 6 ? 1 : 0];
+  if (!slot) return { txt: 'No service today', on: false };
+  const d = new Date(), now = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return { txt: `Today ${slot[0]}–${slot[1]}`, on: now >= slot[0] && now <= slot[1] };
+}
+function nusHoursTable(routes) {
+  const day = new Date().getDay(), col = day === 0 ? 2 : day === 6 ? 1 : 0, cls = i => i === col ? ' class="today"' : '';
+  const cell = (slot, i) => `<td${cls(i)}>${slot ? slot.join('–') : '—'}</td>`;
+  return `<div class="scroll-x"><table class="fl"><thead><tr><th>Bus</th><th${cls(0)}>Mon–Fri</th><th${cls(1)}>Saturday</th><th${cls(2)}>Sun &amp; PH</th></tr></thead><tbody>${routes.map(r => `<tr><td>${esc(r)}</td>${(NUS_HOURS[r] || [null, null, null]).map(cell).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">Usual first and last departures from the start of each route. Hours change during vacation and on special days; the NUS shuttle page has the latest.</p>`;
+}
+const nusRelay = () => String(store.get('nusRelay', '') || NUS_RELAY_DEFAULT).trim().replace(/\/+$/, '');
+// Minutes to the next two shuttles. Live values first; otherwise the feed's scheduled trips, extended by their headway.
+function nusEtas(s) {
+  const val = v => (v != null && v !== '' && v !== '-' && !isNaN(+v)) ? { m: Math.max(0, Math.round(+v)), est: false } : null;
+  const live = [val(s.arrivalTime), val(s.nextArrivalTime)];
+  if (live[0]) return live;
+  const etas = Array.isArray(s._etas) ? s._etas : [];
+  const parse = ts => { let t = String(ts).trim().replace(' ', 'T'); if (!/(Z|[+-]\d\d:?\d\d)$/i.test(t)) t += '+08:00'; return Date.parse(t); };
+  const sched = etas.map(e => e && e.ts ? parse(e.ts) : NaN).filter(x => !isNaN(x)).sort((a, b) => a - b);
+  if (!sched.length) return [0, 1].map(i => etas[i] && etas[i].eta != null && !isNaN(+etas[i].eta) ? { m: Math.max(0, Math.round(+etas[i].eta)), est: true } : null);
+  const now = Date.now();
+  const hw = sched.length > 1 ? (sched[sched.length - 1] - sched[0]) / (sched.length - 1) : 0;
+  const tol = hw > 0 ? Math.max(5, Math.round(hw / 60000 / 4)) : 5;
+  const out = [];
+  if (sched[sched.length - 1] > now) { for (const t of sched) { const m = Math.round((t - now) / 60000); if (m >= -tol) out.push(Math.max(0, m)); } }
+  else if (hw > 0) { const k = Math.floor((now - sched[sched.length - 1]) / hw); for (let o = k; o < k + 3; o++) { const m = Math.round((sched[sched.length - 1] + hw * o - now) / 60000); if (m >= -tol) out.push(Math.max(0, m)); } }
+  out.sort((a, b) => a - b);
+  return [0, 1].map(i => out[i] != null ? { m: out[i], est: true } : null);
+}
 
 /* ========= helpers ========= */
 const $ = (s, el = document) => el.querySelector(s);
@@ -443,11 +549,15 @@ function buildIndex() {
     (s.routes || []).forEach((route, dir) => route.forEach((code, idx) => { (S.stopRoutes[code] ||= []).push({ no, dir, idx }); }));
   for (const [code, v] of Object.entries(S.stops)) (S.grid[cellKey(v[1], v[0])] ||= []).push(code);
 }
-function svcAt(code) { return [...new Set((S.stopRoutes[code] || []).map(r => r.no))].sort(natSort); }
-function stopsNear(lat, lng, radius, limit = 15) {
+function svcAt(code) {
+  if (isNus(code)) { const id = nusId(code); return Object.keys(NUS_ROUTES).filter(r => NUS_ROUTES[r].includes(id)); }
+  return [...new Set((S.stopRoutes[code] || []).map(r => r.no))].sort(natSort);
+}
+function stopsNear(lat, lng, radius, limit = 15, publicOnly = false) {
   const cy = Math.floor(lat / 0.005), cx = Math.floor(lng / 0.005), span = Math.ceil(radius / 550) + 1, out = [];
   for (let y = cy - span; y <= cy + span; y++) for (let x = cx - span; x <= cx + span; x++)
     for (const code of S.grid[y + ',' + x] || []) {
+      if (publicOnly && isNus(code)) continue;
       const s = S.stops[code], d = dist(lat, lng, s[1], s[0]);
       if (d <= radius) out.push({ code, d });
     }
@@ -477,12 +587,23 @@ async function fetchArrivals(code, force) {
   if (S.inflight[code]) return S.inflight[code];
   S.inflight[code] = (async () => {
     try {
-      const r = await fetch(ARRIVE_URL + encodeURIComponent(code));
-      if (!r.ok) throw new Error('Arrival service replied ' + r.status);
-      const j = await r.json();
-      S.arr[code] = { t: Date.now(), services: j.services || [], err: null };
+      if (isNus(code)) {
+        const relay = nusRelay();
+        if (!relay) S.arr[code] = { t: Date.now(), result: null, err: 'norelay' };
+        else {
+          const r = await fetch(relay + '/?stop=' + encodeURIComponent(nusId(code)));
+          const j = await r.json().catch(() => ({}));
+          if (!j.ok || !j.result) throw new Error(j.error || 'Relay replied ' + r.status);
+          S.arr[code] = { t: Date.now(), result: j.result, err: null };
+        }
+      } else {
+        const r = await fetch(ARRIVE_URL + encodeURIComponent(code));
+        if (!r.ok) throw new Error('Arrival service replied ' + r.status);
+        const j = await r.json();
+        S.arr[code] = { t: Date.now(), services: j.services || [], err: null };
+      }
     } catch (e) {
-      S.arr[code] = { t: Date.now(), services: c?.services || [], err: navigator.onLine === false ? 'You are offline' : 'Couldn’t reach the live arrivals service' };
+      S.arr[code] = { t: Date.now(), services: c?.services || [], result: c?.result || null, err: navigator.onLine === false ? 'You are offline' : isNus(code) ? 'NUS shuttle times unavailable' : 'Couldn’t reach the live arrivals service' };
     } finally { delete S.inflight[code]; }
     return S.arr[code];
   })();
@@ -498,7 +619,35 @@ function etaCell(b, first) {
 }
 const loadName = l => ({ SEA: 'Seats available', SDA: 'Standing available', LSD: 'Limited standing' })[l] || '';
 const typeName = t => ({ SD: 'Single deck', DD: 'Double deck', BD: 'Bendy' })[t] || '';
+function nusEtaCell(e, first) {
+  if (!e) return `<span class="eta none">–</span>`;
+  return `<span class="eta${first ? '' : ' later'}${e.est ? ' est' : ''}" title="${e.est ? 'Scheduled' : 'Live'}">${e.m <= 0 ? 'Arr' : e.m}</span>`;
+}
+function renderNusBoard(el) {
+  const code = el.dataset.arr, only = el.dataset.only ? el.dataset.only.split(',') : null, data = S.arr[code];
+  if (!data) { el.innerHTML = `<div class="msg"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Getting NUS shuttle times…</div>`; return; }
+  const byRoute = {};
+  for (const s of data.result?.shuttles || []) { if (/^\d+[A-Z]?$/i.test(String(s.name))) continue; byRoute[nusRouteOf(s.name)] ||= s; }
+  let routes = [...new Set([...svcAt(code), ...Object.keys(byRoute)])];
+  if (only) routes = routes.filter(r => only.includes(r));
+  const live = !data.err;
+  const rows = routes.map(r => {
+    const s = byRoute[r], et = s ? nusEtas(s) : [null, null], hrs = nusHoursToday(r);
+    const running = !!(et[0] || et[1]);
+    const tags = [running && s?.arrivalTime_veh_plate ? s.arrivalTime_veh_plate : '', hrs.txt].filter(Boolean).join(' · ');
+    const dest = live && !running ? (hrs.on ? 'No shuttle reported' : 'Not running now') : (NUS_INFO[r]?.[1] || '');
+    return `<div class="arow${live && !running ? ' off' : ''}"><a class="svc nus" href="#isb/${encodeURIComponent(r)}" aria-label="NUS shuttle ${esc(r)} route">${esc(r)}</a>
+      <div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>
+      ${nusEtaCell(et[0], true)}${nusEtaCell(et[1], false)}<span></span></div>`;
+  }).join('');
+  const ago = Math.round((Date.now() - data.t) / 1000);
+  const status = data.err === 'norelay' ? 'Live times not connected' : data.err ? esc(data.err) : (ago < 5 ? 'Live · just now' : 'Live · ' + ago + 's ago');
+  el.innerHTML = (data.err === 'norelay' ? `<div class="msg">Live NUS shuttle times need the NUS relay. <a href="#more">Set it up under More</a>.</div>` : '') +
+    (rows ? `<div class="bhead"><span>Shuttle</span><span>Route</span><span>Next</span><span>2nd</span><span></span></div>${rows}` : `<div class="msg">${only ? 'None of your chosen shuttles stop here.' : 'No NUS shuttles listed for this stop.'}</div>`) +
+    `<div class="bfoot"><span>NUS shuttle</span><span><i class="ring"></i>Scheduled</span><span class="upd">${status}</span></div>`;
+}
 function renderBoard(el) {
+  if (isNus(el.dataset.arr)) return renderNusBoard(el);
   const code = el.dataset.arr, only = el.dataset.only ? el.dataset.only.split(',') : null;
   const data = S.arr[code];
   if (!data) { el.innerHTML = `<div class="msg"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Getting live times…</div>`; return; }
@@ -563,14 +712,14 @@ function renderSaved() {
       <p class="muted small">Find your usual stops, open one and tap the star. They'll show up here with live times that refresh by themselves.</p>
       <div class="row" style="justify-content:center"><a class="btn primary" href="#nearby">Find stops near me</a><a class="btn" href="#search">Search stops</a></div>
       <p class="muted small" style="margin-top:6px">Or peek at an example stop:</p>
-      <div class="chips" style="justify-content:center">${['75009', '99009', '10009'].filter(c => S.stops[c]).map(c => `<a class="chip sm" style="text-decoration:none;color:var(--ink)" href="#stop/${c}">${esc(stopName(c))} · ${c}</a>`).join('')}</div>
+      <div class="chips" style="justify-content:center">${['75009', '99009', 'NUS:CLB'].filter(c => S.stops[c]).map(c => `<a class="chip sm" style="text-decoration:none;color:var(--ink)" href="#stop/${c}">${esc(stopName(c))} · ${codeLabel(c)}</a>`).join('')}</div>
     </div>`;
     return;
   }
   out.innerHTML = S.saved.map((s, i) => {
     const st = S.stops[s.code];
     const title = s.label || stopName(s.code);
-    const sub = [s.label ? stopName(s.code) : '', st?.[3], s.code].filter(Boolean).join(' · ');
+    const sub = [s.label ? stopName(s.code) : '', st?.[3], codeLabel(s.code)].filter(Boolean).join(' · ');
     const edit = S.editing ? `<div class="edit-tools">
         <div class="field"><label for="lbl${i}">Nickname</label><input class="input" id="lbl${i}" data-lbl="${i}" value="${esc(s.label)}" placeholder="e.g. Home, Work, Campus"></div>
         <div class="field"><label>Show only these buses (none ticked = all)</label><div class="chips">${svcAt(s.code).map(n => `<button class="chip${s.only?.includes(n) ? ' on' : ''}" data-only-i="${i}" data-n="${esc(n)}" aria-pressed="${!!s.only?.includes(n)}">${esc(n)}</button>`).join('')}</div></div>
@@ -677,10 +826,11 @@ function makeMap(el, opts = {}) {
 }
 function stopMarker(code, opts = {}) {
   const s = S.stops[code];
-  return L.circleMarker([s[1], s[0]], { radius: opts.r || 7, color: '#fff', weight: 2, fillColor: opts.fill || cssVar('--accent'), fillOpacity: 1 });
+  return L.circleMarker([s[1], s[0]], { radius: opts.r || 7, color: '#fff', weight: 2, fillColor: opts.fill || cssVar(isNus(code) ? '--nus' : '--accent'), fillOpacity: 1 });
 }
 
 function showStop(code) {
+  if (isNus(code) && S.stops[code]) return showNusStop(code);
   const s = S.stops[code];
   const body = openSheet('Bus stop');
   if (!s) { body.innerHTML = `<div class="card empty"><p>Stop <b>${esc(code)}</b> isn't in the bus data.</p></div>`; return; }
@@ -711,6 +861,53 @@ function showStop(code) {
   });
   fetchArrivals(code, true).then(() => tick(false));
   tick(false);
+}
+
+const STAR_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z"/></svg>`;
+function showNusStop(code) {
+  const s = S.stops[code], id = nusId(code), routes = svcAt(code);
+  const lta = NUS_LTA[id] && S.stops[NUS_LTA[id]] ? NUS_LTA[id] : null;
+  const body = openSheet('NUS shuttle stop');
+  body.innerHTML = `
+    <div class="stop-head"><div class="main"><h2>${esc(s[2])}</h2><div class="row muted" style="margin-top:6px"><span class="tag-nus">NUS shuttle</span><span class="code">${esc(id)}</span></div></div>
+      <button class="icon-btn star" id="starBtn" aria-pressed="${isSaved(code)}" aria-label="Save this stop" title="Save this stop">${STAR_SVG}</button></div>
+    ${boardHTML(code)}
+    <div class="row"><button class="btn" id="refreshArr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh</button><a class="btn" href="#plan" id="planFromHere">Plan from here</a></div>
+    ${lta ? `<div class="card"><div class="row"><h3>Public buses here</h3><span class="spacer"></span><a class="small" href="#stop/${lta}">${esc(stopName(lta))} · ${lta}</a></div>${boardHTML(lta, { compact: true })}</div>` : ''}
+    <div class="minimap" id="stopMap"></div>
+    <div class="card"><h3>NUS shuttles at this stop</h3><div class="chips">${routes.map(r => `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(r)}">${esc(r)}</a>`).join('') || '<span class="muted small">None listed</span>'}</div></div>
+    ${routes.length ? `<details class="fold"><summary>Usual operating hours</summary><div class="fbody">${nusHoursTable(routes)}</div></details>` : ''}`;
+  $('#starBtn').onclick = e => { toggleSave(code); e.currentTarget.setAttribute('aria-pressed', isSaved(code)); };
+  $('#refreshArr').onclick = () => tick(true);
+  $('#planFromHere').onclick = () => { setPlace('from', { name: `${s[2]} (NUS)`, lat: s[1], lng: s[0] }); };
+  requestAnimationFrame(() => {
+    S.sheetMap = makeMap('stopMap', { zoomControl: false, dragging: true, scrollWheelZoom: false }).setView([s[1], s[0]], 17);
+    stopsNear(s[1], s[0], 300, 30).forEach(n => { if (n.code !== code) stopMarker(n.code, { r: 5, fill: cssVar('--muted') }).addTo(S.sheetMap).on('click', () => location.hash = '#stop/' + n.code); });
+    stopMarker(code, { r: 9 }).addTo(S.sheetMap);
+  });
+  fetchArrivals(code, true).then(() => tick(false));
+  tick(false);
+}
+function showIsb(no) {
+  no = String(no).toUpperCase();
+  const route = NUS_ROUTES[no], body = openSheet('NUS shuttle');
+  if (!route) { body.innerHTML = `<div class="card empty"><p>NUS shuttle <b>${esc(no)}</b> isn't in the route list.</p></div>`; return; }
+  const loop = route[0] === route[route.length - 1];
+  body.innerHTML = `
+    <div class="stop-head"><div class="main"><div class="row" style="gap:10px"><div class="svc-big">${esc(no)}</div><span class="tag-nus">NUS shuttle</span></div><div class="muted" style="margin-top:4px">${esc(NUS_INFO[no]?.[0] || '')}</div></div></div>
+    <div class="note">${loop ? `Loop: starts and ends at ${esc(NUS_STOPS[route[0]][2])}.` : `Runs from ${esc(NUS_STOPS[route[0]][2])} to ${esc(NUS_STOPS[route[route.length - 1]][2])}.`} ${esc(nusHoursToday(no).txt)}.</div>
+    <div class="minimap" id="svcMap" style="height:240px"></div>
+    <details class="fold"><summary>Usual operating hours</summary><div class="fbody">${nusHoursTable([no])}</div></details>
+    <div><h3 style="margin-bottom:8px">${route.length} stops</h3>
+    <div class="list seq">${route.map((c, i) => `<a class="item" href="#stop/NUS:${esc(c)}" style="text-decoration:none;color:inherit"><span class="dot" style="border-color:var(--nus)"></span><span class="n">${i + 1}</span><span class="main"><span class="t">${esc(NUS_STOPS[c]?.[2] || c)}</span></span><span class="code">${esc(c)}</span></a>`).join('')}</div>
+    <p class="muted small" style="margin:8px 0 0">Stop order comes from the NUS NextBus feed and riders' reports, so one or two stops may be in a slightly different order on the road.</p></div>`;
+  requestAnimationFrame(() => {
+    const pts = route.filter(c => NUS_STOPS[c]).map(c => [NUS_STOPS[c][1], NUS_STOPS[c][0]]);
+    S.sheetMap = makeMap('svcMap', { scrollWheelZoom: false });
+    L.polyline(pts, { color: cssVar('--nus'), weight: 4, opacity: .85 }).addTo(S.sheetMap);
+    route.forEach((c, i) => S.stops['NUS:' + c] && stopMarker('NUS:' + c, { r: (i === 0 || i === route.length - 1) ? 7 : 5 }).addTo(S.sheetMap).bindPopup(`<div class="pop-t">${esc(NUS_STOPS[c][2])}</div><div class="muted small">${esc(c)}</div><button class="pop-b" onclick="location.hash='#stop/NUS:${c}'">Live times</button>`));
+    S.sheetMap.fitBounds(L.latLngBounds(pts), { padding: [20, 20] });
+  });
 }
 
 /* ========= service sheet ========= */
@@ -771,14 +968,14 @@ function refreshNear() {
     for (const [code, s] of Object.entries(S.stops)) {
       if (!b.contains([s[1], s[0]])) continue;
       if (++n > 400) break;
-      stopMarker(code, { r: 6 }).addTo(nearLayer).bindPopup(`<div class="pop-t">${esc(s[2])}</div><div class="small">${esc(s[3])} · ${code}</div><button class="pop-b" onclick="location.hash='#stop/${code}'">Live times</button>`);
+      stopMarker(code, { r: 6 }).addTo(nearLayer).bindPopup(`<div class="pop-t">${esc(s[2])}</div><div class="small">${esc(s[3])} · ${codeLabel(code)}</div><button class="pop-b" onclick="location.hash='#stop/${code}'">Live times</button>`);
     }
   }
   const near = stopsNear(c.lat, c.lng, 800, 15);
   $('#nearHint').textContent = m.getZoom() < 15 ? 'Zoom in or tap the locate button to see stops around you.' : 'Stops closest to the crosshair. Drag the map to look elsewhere.';
   $('#nearList').innerHTML = near.length ? near.map(n => {
     const s = S.stops[n.code], sv = svcAt(n.code);
-    return `<a class="item" href="#stop/${n.code}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(s[2])}</span><span class="s">${esc(s[3])} · ${sv.slice(0, 8).join(' ')}${sv.length > 8 ? ' +' + (sv.length - 8) : ''}</span></span><span class="dist">${fmtDist(n.d)}</span><span class="code">${n.code}</span></a>`;
+    return `<a class="item" href="#stop/${n.code}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(s[2])}</span><span class="s">${esc(s[3])} · ${sv.slice(0, 8).join(' ')}${sv.length > 8 ? ' +' + (sv.length - 8) : ''}</span></span><span class="dist">${fmtDist(n.d)}</span>${isNus(n.code) ? '<span class="tag-nus">NUS</span>' : `<span class="code">${n.code}</span>`}</a>`;
   }).join('') : `<div class="item"><span class="main muted">No bus stops within 800 m of the crosshair.</span></div>`;
 }
 function locate(quiet) {
@@ -801,18 +998,21 @@ const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, '
 function searchStops(q, limit = 30) {
   q = q.trim(); if (!q) return [];
   if (/^\d{2,5}$/.test(q)) return Object.keys(S.stops).filter(c => c.startsWith(q)).slice(0, limit);
-  const toks = norm(q).split(' ').map(t => ABBR[t] || t);
+  const toks = norm(q).split(' ').map(t => ABBR[t] || t), wantNus = toks.some(t => /^(nus|isb|shuttle)$/.test(t));
   const res = [];
   for (const [code, s] of Object.entries(S.stops)) {
     const name = norm(s[2]), hay = name + ' ' + norm(s[3]) + ' ' + code;
     const words = hay.split(' ');
-    if (toks.every(t => words.some(w => w.startsWith(t)) || hay.includes(t))) res.push({ code, score: name.startsWith(toks[0]) ? 0 : 1 });
+    if (toks.every(t => words.some(w => w.startsWith(t)) || hay.includes(t))) res.push({ code, score: (wantNus && isNus(code)) ? -1 : name.startsWith(toks[0]) ? 0 : 1 });
   }
   return res.sort((a, b) => a.score - b.score || stopName(a.code).localeCompare(stopName(b.code))).slice(0, limit).map(r => r.code);
 }
 function searchServices(q) {
-  const k = q.trim().toLowerCase().replace(/\s+/g, ''); if (!k || k.length > 5 || !/^[0-9a-z]+$/.test(k)) return [];
-  return Object.keys(S.services).filter(n => n.toLowerCase().startsWith(k)).sort(natSort).slice(0, 16);
+  const k = q.trim().toLowerCase().replace(/\s+/g, ''); if (!k) return [];
+  if (/^(nus|isb|shuttle|internal)/.test(k)) return Object.keys(NUS_ROUTES).map(r => 'NUS:' + r);
+  if (k.length > 5 || !/^[0-9a-z]+$/.test(k)) return [];
+  const nus = Object.keys(NUS_ROUTES).filter(r => r.toLowerCase().startsWith(k)).map(r => 'NUS:' + r);
+  return [...nus, ...Object.keys(S.services).filter(n => n.toLowerCase().startsWith(k)).sort(natSort)].slice(0, 16);
 }
 async function omSearch(q) {
   const tok = await getToken().catch(() => null);
@@ -826,10 +1026,10 @@ const titleCase = s => (s = String(s || ''), (s !== s.toUpperCase() || !/\s/.tes
 let searchSeq = 0;
 const runSearch = debounce(async () => {
   const q = $('#q').value, out = $('#searchOut'), seq = ++searchSeq;
-  if (!q.trim()) { out.innerHTML = `<p class="muted small" style="margin:0">Try “2”, “96041”, “Tampines Int” or “Changi Airport”.</p>`; return; }
+  if (!q.trim()) { out.innerHTML = `<p class="muted small" style="margin:0">Try “2”, “96041”, “Tampines Int”, “Changi Airport”, or “NUS” for campus shuttles.</p>`; return; }
   const sv = searchServices(q), st = searchStops(q);
-  out.innerHTML = (sv.length ? `<div class="card"><h3>Bus services</h3><div class="chips">${sv.map(n => `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '') +
-    (st.length ? `<div><h3 style="margin-bottom:8px">Bus stops</h3><div class="list">${st.map(c => `<a class="item" href="#stop/${c}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c][3])} · ${svcAt(c).slice(0, 8).join(' ')}</span></span><span class="code">${c}</span></a>`).join('')}</div></div>` : '') +
+  out.innerHTML = (sv.length ? `<div class="card"><h3>Bus services</h3><div class="chips">${sv.map(n => isNus(n) ? `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(nusId(n))}" title="NUS shuttle">${esc(nusId(n))}</a>` : `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '') +
+    (st.length ? `<div><h3 style="margin-bottom:8px">Bus stops</h3><div class="list">${st.map(c => `<a class="item" href="#stop/${c}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c][3])} · ${svcAt(c).slice(0, 8).join(' ')}</span></span>${isNus(c) ? '<span class="tag-nus">NUS</span>' : `<span class="code">${c}</span>`}</a>`).join('')}</div></div>` : '') +
     `<div id="placeOut"></div>`;
   if (q.trim().length >= 3 && !/^\d{1,5}$/.test(q.trim())) {
     $('#placeOut').innerHTML = `<div class="loading small"><span class="spin"></span>Searching places…</div>`;
@@ -841,6 +1041,28 @@ const runSearch = debounce(async () => {
   } else if (!sv.length && !st.length) out.innerHTML = '<p class="muted small" style="margin:0">Nothing matched.</p>';
 }, 180);
 $('#q').addEventListener('input', runSearch);
+
+/* ========= NUS relay ========= */
+function renderNus() {
+  const r = nusRelay();
+  $('#nusStatus').innerHTML = r ? `<b style="color:var(--ok)">Connected</b> to ${esc(r.replace(/^https?:\/\//, ''))}.` : '<b>Not connected.</b>';
+  if (document.activeElement !== $('#nusRelayIn')) $('#nusRelayIn').value = store.get('nusRelay', '') || '';
+}
+$('#nusForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  let v = $('#nusRelayIn').value.trim().replace(/\/+$/, '');
+  if (v && !/^https:\/\//.test(v)) v = 'https://' + v.replace(/^\w+:\/\//, '');
+  const btn = $('#nusRelaySave');
+  if (!v) { store.del('nusRelay'); renderNus(); Object.keys(S.arr).filter(isNus).forEach(k => delete S.arr[k]); toast(NUS_RELAY_DEFAULT ? 'Using the built-in relay' : 'NUS relay removed'); return; }
+  btn.disabled = true; btn.textContent = 'Testing…';
+  try {
+    const r = await fetch(v + '/?stop=CLB'); const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw new Error(j.error || 'The relay replied ' + r.status);
+    store.set('nusRelay', v); Object.keys(S.arr).filter(isNus).forEach(k => delete S.arr[k]);
+    renderNus(); toast('NUS relay working');
+  } catch (err) { toast(err.message === 'Failed to fetch' ? 'Couldn’t reach that address' : String(err.message || err)); }
+  finally { btn.disabled = false; btn.textContent = 'Save & test'; }
+});
 
 /* ========= OneMap auth ========= */
 function jwtExp(tok) { try { return JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp; } catch { return 0; } }
@@ -896,7 +1118,7 @@ function setupAC(which) {
   const run = debounce(async () => {
     const q = inp.value.trim(), my = ++seq;
     if (q.length < 2) { items = []; show(); return; }
-    const local = searchStops(q, 4).map(c => ({ name: `${stopName(c)} (${c})`, sub: S.stops[c][3] + ' · bus stop', lat: S.stops[c][1], lng: S.stops[c][0], code: c }));
+    const local = searchStops(q, 4).map(c => ({ name: `${stopName(c)} (${isNus(c) ? 'NUS' : c})`, sub: S.stops[c][3] + (isNus(c) ? '' : ' · bus stop'), lat: S.stops[c][1], lng: S.stops[c][0], code: c }));
     items = local; show();
     if (q.length >= 3) { try { const pl = await omSearch(q); if (my === seq) { items = [...pl, ...local]; show(); } } catch {} }
   }, 250);
@@ -938,9 +1160,9 @@ async function onemapRoute(from, to, when, mode) {
 /* Bus-only planner: direct buses and one-transfer trips between stops near each end. */
 function busPlanner(from, to, when) {
   const WALK = 75, PER_STOP = 1.6, WAIT = 5, XFER = 3; // m/min, min per stop, min wait per boarding, transfer penalty
-  let O = stopsNear(from.lat, from.lng, 500, 10), D = stopsNear(to.lat, to.lng, 500, 10);
-  if (O.length < 3) O = stopsNear(from.lat, from.lng, 1000, 5);
-  if (D.length < 3) D = stopsNear(to.lat, to.lng, 1000, 5);
+  let O = stopsNear(from.lat, from.lng, 500, 10, true), D = stopsNear(to.lat, to.lng, 500, 10, true);
+  if (O.length < 3) O = stopsNear(from.lat, from.lng, 1000, 5, true);
+  if (D.length < 3) D = stopsNear(to.lat, to.lng, 1000, 5, true);
   if (!O.length || !D.length) return [];
   const dWalk = new Map(D.map(d => [d.code, d.d]));
   const options = [];
@@ -962,7 +1184,7 @@ function busPlanner(from, to, when) {
       const x = route[i];
       // transfer at the same stop or one within 150 m (e.g. across the road)
       const cands = reach.has(x) ? [[x, 0]] : [];
-      if (!cands.length) for (const n of stopsNear(S.stops[x][1], S.stops[x][0], 150, 4)) if (n.code !== x && reach.has(n.code)) cands.push([n.code, n.d]);
+      if (!cands.length) for (const n of stopsNear(S.stops[x][1], S.stops[x][0], 150, 4, true)) if (n.code !== x && reach.has(n.code)) cands.push([n.code, n.d]);
       for (const [xc, xw] of cands) {
         const a = reach.get(xc); if (a.no === r.no) continue;
         const t = a.t + XFER + xw / WALK + WAIT + (r.idx - i) * PER_STOP + d.d / WALK;
@@ -1070,7 +1292,7 @@ function setTab(t) {
   if (t === 'saved') renderSaved();
   if (t === 'nearby') requestAnimationFrame(initNearMap);
   if (t === 'search' && !$('#searchOut').innerHTML) runSearch();
-  if (t === 'more') { renderOM(); renderSync(); $('#dataInfo').textContent = `${Object.keys(S.stops).length.toLocaleString()} stops · ${Object.keys(S.services).length} services loaded.`; }
+  if (t === 'more') { renderOM(); renderSync(); renderNus(); $('#dataInfo').textContent = `${Object.keys(S.stops).length.toLocaleString()} stops · ${Object.keys(S.services).length} services loaded.`; }
   tick(false);
 }
 function route() {
@@ -1080,6 +1302,7 @@ function route() {
   const first = S.first; S.first = false;
   if (view === 'stop' && a) { if (!first) S.navDepth++; return showStop(a); }
   if (view === 'svc' && a) { if (!first) S.navDepth++; return showService(a, +(b || 0)); }
+  if (view === 'isb' && a) { if (!first) S.navDepth++; return showIsb(a); }
   closeSheet(); S.navDepth = 0;
   setTab(['saved', 'nearby', 'search', 'plan', 'more'].includes(view) ? view : (S.saved.length ? 'saved' : 'nearby'));
 }
@@ -1093,6 +1316,7 @@ $('#refreshData').onclick = async () => {
 async function boot() {
   try {
     const [stops, services] = await Promise.all([loadJSON('stops.min.json', 7), loadJSON('services.min.json', 7)]);
+    for (const [id, v] of Object.entries(NUS_STOPS)) stops['NUS:' + id] = [v[0], v[1], v[2], 'NUS shuttle stop'];
     S.stops = stops; S.services = services; buildIndex();
     $('#boot').hidden = true;
     S.first = true; route();
