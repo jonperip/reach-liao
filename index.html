@@ -9,6 +9,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Reach Liao">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500;700&display=swap">
@@ -22,7 +24,7 @@
   --panel:#111614; --panel-2:#1B2220; --panel-line:#2A3330; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
   --led:#FFB627; --led-dim:#9A7A35;
   --sea:#2FBF71; --sda:#F2A93B; --lsd:#E5484D; --walk:#8C9A95;
-  --danger:#B42318; --ok:#0B6E4F; --nus:#C25400; --nus-led:#FF9B45;
+  --danger:#B42318; --ok:#0B6E4F; --nus:#C25400; --nus-led:#FF9B45; --ntu:#1F5FC8;
   --f-display:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-body:"Overpass","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-mono:"Overpass Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -33,12 +35,12 @@
   --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
   --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
   --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
-  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; color-scheme: dark; } }
+  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; --ntu:#7DA7FF; color-scheme: dark; } }
 :root[data-theme="dark"]{
   --bg:#0C1110; --surface:#151B19; --sunk:#1B2321; --ink:#E6EEEA; --muted:#93A39D; --line:#26302C;
   --accent:#3CC08F; --accent-ink:#04140D; --accent-soft:#16342A;
   --panel:#080B0A; --panel-2:#121816; --panel-line:#232B28; --panel-ink:#E9EFEC; --panel-muted:#8C9A95;
-  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; color-scheme: dark; }
+  --danger:#FF7A6E; --ok:#3CC08F; --nus:#FF9B45; --ntu:#7DA7FF; color-scheme: dark; }
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -121,6 +123,11 @@ h3{font:700 13px/1.2 var(--f-display);margin:0;text-transform:uppercase;letter-s
 .board .msg a{color:var(--nus-led)}
 .svc.nus{border-color:var(--nus-led);color:var(--nus-led)}
 .chip.nus{border-color:var(--nus);box-shadow:inset 3px 0 0 var(--nus)}
+.svc.ntu{color:#fff;border-color:transparent;font-size:13px;letter-spacing:.01em}
+.arow .freq{grid-column:span 3;text-align:right;font:700 14px/1.2 var(--f-mono);color:var(--led);font-variant-numeric:tabular-nums}
+.arow .freq.off{color:var(--panel-muted);font-weight:600;font-size:12px}
+.chip.ntu{box-shadow:inset 3px 0 0 var(--c,var(--ntu))}
+.tag-ntu{font:700 10px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ntu);border:1px solid var(--ntu);border-radius:5px;padding:4px 5px 3px;flex:none}
 .tag-nus{font:700 10px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--nus);border:1px solid var(--nus);border-radius:5px;padding:4px 5px 3px;flex:none}
 .bfoot .ring{display:inline-block;width:6px;height:6px;border:1.5px solid currentColor;border-radius:50%;margin-right:4px;vertical-align:middle}
 .board.compact .arow{padding:7px 12px}
@@ -221,6 +228,27 @@ nav.tabs a svg{width:22px;height:22px}
 nav.tabs a[aria-current="page"]{color:var(--accent)}
 nav.tabs a[aria-current="page"] svg{stroke-width:2.4}
 
+button.dest{all:unset;display:block;min-width:0;cursor:pointer;font-size:13px;line-height:1.25;border-radius:6px}
+button.dest:focus-visible{outline:2px solid var(--led);outline-offset:2px}
+button.dest:hover .d{text-decoration:underline;text-underline-offset:3px}
+.bell{width:11px;height:11px;margin-left:5px;vertical-align:-1px;opacity:.75;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tracker{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 8px);z-index:60;width:min(608px,calc(100% - 32px));background:var(--panel);color:var(--panel-ink);border:1px solid var(--panel-line);border-radius:16px;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 10px;box-shadow:0 12px 32px rgba(0,0,0,.32)}
+body.sheet-open .tracker{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
+.tk-main{flex:1;min-width:0;display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none}
+.tracker .svc{width:52px;flex:none;font-size:16px;padding:7px 2px 5px}
+.tk-txt{flex:1;min-width:0}
+.tk-t{display:block;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-s{display:block;font:600 11px/1.35 var(--f-mono);color:var(--panel-muted)}
+.tk-eta{font:700 26px/1 var(--f-mono);color:var(--led);text-shadow:0 0 10px rgba(255,182,39,.35);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tk-eta small{font-size:12px;margin-left:2px;color:var(--led-dim);text-shadow:none}
+.tk-x{width:36px;height:36px;flex:none;border-radius:10px;border:1px solid var(--panel-line);background:var(--panel-2);color:var(--panel-ink);display:grid;place-items:center;padding:0}
+.tk-x svg{width:16px;height:16px}
+body.tracking .app{padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 96px)}
+body.tracking .sheet .inner{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 100px)}
+body.tracking .toast{bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 90px)}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(5,10,8,.5);display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.mbox{background:var(--surface);color:var(--ink);border-radius:18px;padding:18px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.mbox h2{font-size:20px}
 .toast{position:fixed;left:50%;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:100;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:12px 0}
 .spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite}
@@ -340,9 +368,10 @@ textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
       </div>
 
       <div class="card" id="nusCard">
-        <h3>NUS shuttle live times</h3>
+        <h3>Relay: NUS shuttles &amp; bus alerts</h3>
         <p style="margin:0" class="small" id="nusStatus"></p>
         <p style="margin:0" class="small muted">NUS only shares live shuttle times with its own app, so Reach Liao reads them through a small relay that runs free on Cloudflare. <a href="https://github.com/jonperip/reach-liao#nus-shuttle-relay" target="_blank" rel="noopener">Relay setup steps</a>. Without it, NUS stops still show their routes and usual hours.</p>
+        <p style="margin:0" class="small" id="alertStatus"></p>
         <form id="nusForm" class="field" autocomplete="off">
           <label for="nusRelayIn">Relay address</label>
           <div class="with-btn"><input class="input" id="nusRelayIn" type="url" inputmode="url" placeholder="https://reach-liao-nus.yourname.workers.dev"><button class="btn" type="submit" id="nusRelaySave">Save &amp; test</button></div>
@@ -367,7 +396,7 @@ textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
 
       <div class="card">
         <h3>About the data</h3>
-        <p style="margin:0" class="small">Live arrivals: LTA DataMall via <a href="https://github.com/cheeaun/arrivelah" target="_blank" rel="noopener">arrivelah</a>. Stops, services and first/last bus: <a href="https://busrouter.sg" target="_blank" rel="noopener">BusRouter SG</a> (scraped from LTA). Maps, place search and journeys: <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener">OneMap</a> © Singapore Land Authority.</p>
+        <p style="margin:0" class="small">Live arrivals: LTA DataMall via <a href="https://github.com/cheeaun/arrivelah" target="_blank" rel="noopener">arrivelah</a>. Stops, services and first/last bus: <a href="https://busrouter.sg" target="_blank" rel="noopener">BusRouter SG</a> (scraped from LTA). Maps, place search and journeys: <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener">OneMap</a> © Singapore Land Authority. NUS shuttles: uNivUS via the relay. NTU shuttle stops: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>; NTU timetable from ntu.edu.sg.</p>
         <p style="margin:0" class="small muted" id="dataInfo"></p>
         <div class="row"><button class="btn" id="refreshData">Refresh bus data</button></div>
         <p style="margin:0" class="small muted">Times with a small ring are scheduled estimates (no live GPS for that bus). Public holidays follow the Sunday timetable.</p>
@@ -388,6 +417,19 @@ textarea.input{font:12px/1.4 var(--f-mono);resize:vertical;min-height:70px}
   <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/></svg>Plan</a>
   <a href="#more" data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>More</a>
 </div></nav>
+<div class="tracker" id="tracker" role="status" aria-live="polite" hidden>
+  <a class="tk-main" id="tkLink" href="#saved"><span class="svc" id="tkSvc"></span><span class="tk-txt"><span class="tk-t" id="tkTitle"></span><span class="tk-s" id="tkSub"></span></span><span class="tk-eta" id="tkEta"></span></a>
+  <button class="tk-x" id="tkStop" type="button" aria-label="Stop tracking" title="Stop tracking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+<div class="modal" id="trackModal" hidden>
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="tmTitle">
+    <div><h2 id="tmTitle"></h2><p class="muted small" id="tmSub" style="margin:4px 0 0"></p></div>
+    <div class="field"><label id="tmMinLbl">Alert me when it's</label>
+      <div class="seg" id="tmMin" role="group" aria-labelledby="tmMinLbl" style="display:grid;grid-template-columns:repeat(4,1fr)"><button type="button" data-m="1">Arriving</button><button type="button" data-m="3">3 min</button><button type="button" data-m="5">5 min</button><button type="button" data-m="10">10 min</button></div></div>
+    <p class="note small" id="tmPush" style="margin:0"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="tmCancel" type="button">Cancel</button><button class="btn primary" id="tmStart" type="button">Start tracking</button></div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -456,15 +498,82 @@ const NUS_HOURS = { // [Mon-Fri, Sat, Sun & PH]; null = no service
   R1: [['07:40', '19:30'], null, null],
   R2: [['08:20', '19:30'], null, null]
 };
+/* NTU internal shuttles. Stops and order from NTU's shuttle page; stop positions from OpenStreetMap
+   (© OpenStreetMap contributors). NTU publishes no live feed, so times are the official frequencies. */
+const NTU_STOPS = {
+  'HALL11-55': [103.686365, 1.355922, 'Hall 11 Blk 55'], 'NYCH': [103.684078, 1.354792, 'Nanyang Crescent Halls'],
+  'HALL12': [103.680567, 1.351874, 'Hall 12'], 'LWN': [103.680683, 1.348060, 'Lee Wee Nam Library'],
+  'SBS': [103.678738, 1.344560, 'School of Biological Sciences'], 'WKWSCI': [103.679251, 1.342096, 'WKWSCI'],
+  'SPMS': [103.681761, 1.340080, 'SPMS'], 'WCYP': [103.683658, 1.341143, 'Wee Cho Yaw Plaza'],
+  'HALL4': [103.686862, 1.343747, 'Hall 4'], 'HALL1': [103.687825, 1.345632, 'Hall 1 (Blk 18)'],
+  'HALL2': [103.685589, 1.348797, 'Hall 2'], 'HALL8': [103.685675, 1.351470, 'Hall 8 & 9'],
+  'HALL11': [103.686977, 1.354418, 'Hall 11'], 'OPP-HALL11': [103.687046, 1.354393, 'Opp Hall 11'],
+  'NYH': [103.685864, 1.350869, 'Nanyang Heights (Opp Hall 8)'], 'HALL6': [103.686620, 1.347314, 'Hall 6'],
+  'OPP-HALL4': [103.686940, 1.343647, 'Opp Hall 4'], 'OPP-YG': [103.684433, 1.341617, 'Opp Yunnan Garden'],
+  'OPP-SPMS': [103.681174, 1.341796, 'Opp SPMS'], 'OPP-S2': [103.680114, 1.341886, 'Opp S2'],
+  'OPP-WKWSCI': [103.679053, 1.341976, 'Opp WKWSCI'], 'OPP-CEE': [103.678348, 1.345853, 'Opp CEE'],
+  'NIE2': [103.679491, 1.347485, 'NIE Blk 2 (Opp LWN Library)'], 'OPP-HALL16': [103.680646, 1.350271, 'Opp Hall 16'],
+  'OPP-HALL14': [103.681625, 1.353157, 'Opp Hall 14'], 'OPP-NYCH': [103.683991, 1.354897, 'Opp Nanyang Crescent Halls'],
+  'PIONEER': [103.697274, 1.337777, 'Pioneer MRT Exit B (Blk 649A)'], 'UHS': [103.682939, 1.345710, 'University Health Service'],
+  'TCTLT': [103.681574, 1.344945, 'TCT-LT (Opp Admin Building)'], 'OPP-HALL2': [103.685575, 1.349038, 'Opp Hall 2'],
+  'OPP-HALL1': [103.687798, 1.345833, 'Opp Hall 1'], 'ADM': [103.683852, 1.349880, 'School of ADM (Opp Hall 8)'],
+  'HALL5': [103.687512, 1.344163, 'Hall 5']
+};
+const NTU_LTA = { 'HALL11-55': '27011', 'NYCH': '27071', 'HALL12': '27031', 'LWN': '27211', 'WKWSCI': '27231', 'WCYP': '27251', 'HALL4': '27261', 'HALL1': '27281', 'HALL2': '27311', 'HALL8': '27209', 'HALL6': '27291', 'OPP-HALL4': '27261', 'OPP-WKWSCI': '27231', 'OPP-CEE': '27221', 'OPP-HALL14': '27021', 'OPP-NYCH': '27071', 'PIONEER': '22529', 'OPP-HALL2': '27311', 'OPP-HALL1': '27281', 'ADM': '27061' };
+const NTU_ROUTES = {
+  RED: ['HALL11-55', 'NYCH', 'HALL12', 'LWN', 'SBS', 'WKWSCI', 'SPMS', 'WCYP', 'HALL4', 'HALL1', 'HALL2', 'HALL8', 'HALL11', 'HALL11-55'],
+  BLUE: ['OPP-HALL11', 'NYH', 'HALL6', 'OPP-HALL4', 'OPP-YG', 'OPP-SPMS', 'OPP-S2', 'OPP-WKWSCI', 'OPP-CEE', 'NIE2', 'OPP-HALL16', 'OPP-HALL14', 'OPP-NYCH', 'OPP-HALL11'],
+  GREEN: ['PIONEER', 'HALL1', 'HALL2', 'UHS', 'TCTLT', 'OPP-HALL2', 'HALL6', 'OPP-HALL1', 'PIONEER'],
+  BROWN: ['PIONEER', 'HALL1', 'HALL2', 'UHS', 'TCTLT', 'ADM', 'LWN', 'SBS', 'WKWSCI', 'SPMS', 'WCYP', 'HALL4', 'HALL5', 'PIONEER']
+};
+// [short name, full name, description, colour]
+const NTU_INFO = {
+  RED: ['Red', 'Campus Loop Red (CL-R)', 'Campus loop via Hall 12 · SPMS · Hall 2', '#D7262E'],
+  BLUE: ['Blue', 'Campus Loop Blue (CL-B)', 'Campus loop via Hall 6 · SPMS · NIE', '#1F5FC8'],
+  GREEN: ['Green', 'Campus Rider Green (CR)', 'Pioneer MRT ⇄ Halls · TCT-LT', '#18864B'],
+  BROWN: ['Brown', 'Campus Weekend Rider Brown (CWR)', 'Pioneer MRT ⇄ campus loop', '#8A5A2B']
+};
+// Official frequencies: [from, to, minutes between buses] for Mon–Fri, Sat, Sun & PH; null = no service
+const NTU_LOOP_FREQ = [
+  [['07:30', '08:00', '11–13'], ['08:00', '21:00', '5–7'], ['21:00', '23:00', '7–9']],
+  [['08:00', '10:00', '11–13'], ['10:00', '22:00', '7–9'], ['22:00', '23:00', '9–11']],
+  [['08:00', '11:00', '22–25'], ['11:00', '14:00', '11–13'], ['14:00', '17:00', '22–25'], ['17:00', '20:00', '11–13'], ['20:00', '23:00', '20–25']]
+];
+const NTU_FREQ = {
+  RED: NTU_LOOP_FREQ, BLUE: NTU_LOOP_FREQ,
+  GREEN: [[['07:30', '10:30', '5–6'], ['10:30', '12:00', '9–11'], ['12:00', '14:30', '5–6'], ['14:30', '16:30', '9–11'], ['16:30', '19:30', '5–6'], ['19:30', '22:00', '9–11'], ['22:00', '23:00', '15']], null, null],
+  BROWN: [null,
+    [['07:30', '08:00', '10–12'], ['08:00', '10:00', '6–8'], ['10:00', '12:00', '8–10'], ['12:00', '14:00', '6–8'], ['14:00', '16:30', '8–10'], ['16:30', '19:00', '6–8'], ['19:00', '20:30', '10–12'], ['20:30', '22:00', '6–8'], ['22:00', '23:00', '10–12']],
+    [['07:30', '08:00', '16–18'], ['08:00', '20:00', '10–12'], ['20:00', '23:00', '16–18']]]
+};
+const OMNIBUS_URL = 'https://apps.apple.com/sg/app/ntu-omnibus/id1636457987';
+const isNtu = code => String(code).startsWith('NTU:');
+const ntuId = code => String(code).slice(4);
+const daySlot = d => { const g = d.getDay(); return g === 0 ? 2 : g === 6 ? 1 : 0; };
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+function ntuNow(route, d = new Date()) {
+  const bands = NTU_FREQ[route]?.[daySlot(d)];
+  if (!bands) return { on: false, txt: 'No service today' };
+  const t = hhmm(d), band = bands.find(b => t >= b[0] && t < b[1]);
+  if (band) { const [a, b] = band[2].split('–').map(Number); return { on: true, txt: `Every ${band[2]} min`, wait: ((a + (b || a)) / 2) / 2 }; }
+  return t < bands[0][0] ? { on: false, txt: `Starts ${bands[0][0]}` } : { on: false, txt: 'Finished for today' };
+}
+function ntuHoursTable(routes) {
+  const col = daySlot(new Date()), cls = i => i === col ? ' class="today"' : '';
+  const cell = (b, i) => `<td${cls(i)}>${b ? b[0][0] + '–' + b[b.length - 1][1] : '—'}</td>`;
+  return `<div class="scroll-x"><table class="fl"><thead><tr><th>Bus</th><th${cls(0)}>Mon–Fri</th><th${cls(1)}>Saturday</th><th${cls(2)}>Sun &amp; PH</th></tr></thead><tbody>${routes.map(r => `<tr><td>${esc(NTU_INFO[r][0])}</td>${NTU_FREQ[r].map(cell).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">From NTU's shuttle timetable. Public holidays follow the Sunday timetable. For live positions, use the <a href="${OMNIBUS_URL}" target="_blank" rel="noopener">NTU Omnibus app</a>.</p>`;
+}
 const isNus = code => String(code).startsWith('NUS:');
 const nusId = code => String(code).slice(4);
-const codeLabel = code => isNus(code) ? nusId(code) : code;
+const codeLabel = code => (isNus(code) || isNtu(code)) ? String(code).slice(4) : code;
+const isShuttle = code => isNus(code) || isNtu(code);
 const nusRouteOf = name => { const k = String(name || '').toUpperCase().split(/[\s\-_(]/)[0]; return NUS_ROUTES[k] ? k : String(name || '').toUpperCase(); };
-function nusHoursToday(route) {
+function nusHoursToday(route, d = new Date()) {
   const h = NUS_HOURS[route]; if (!h) return { txt: '', on: true };
-  const day = new Date().getDay(), slot = h[day === 0 ? 2 : day === 6 ? 1 : 0];
+  const slot = h[daySlot(d)];
   if (!slot) return { txt: 'No service today', on: false };
-  const d = new Date(), now = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const now = hhmm(d);
   return { txt: `Today ${slot[0]}–${slot[1]}`, on: now >= slot[0] && now <= slot[1] };
 }
 function nusHoursTable(routes) {
@@ -544,13 +653,19 @@ async function loadJSON(name, maxAgeDays) {
 }
 const cellKey = (lat, lng) => Math.floor(lat / 0.005) + ',' + Math.floor(lng / 0.005);
 function buildIndex() {
-  S.stopRoutes = {}; S.grid = {};
-  for (const [no, s] of Object.entries(S.services))
-    (s.routes || []).forEach((route, dir) => route.forEach((code, idx) => { (S.stopRoutes[code] ||= []).push({ no, dir, idx }); }));
+  S.stopRoutes = {}; S.grid = {}; S.routeSeq = {};
+  const add = (key, no, seq, kind) => {
+    S.routeSeq[key] = { no, seq, kind, loop: seq.length > 2 && seq[0] === seq[seq.length - 1] };
+    seq.forEach((code, idx) => (S.stopRoutes[code] ||= []).push({ no, key, idx, kind }));
+  };
+  for (const [no, s] of Object.entries(S.services)) (s.routes || []).forEach((route, dir) => add(no + '|' + dir, no, route, 'bus'));
+  for (const [r, seq] of Object.entries(NUS_ROUTES)) add('NUS:' + r, r, seq.map(x => 'NUS:' + x), 'nus');
+  for (const [r, seq] of Object.entries(NTU_ROUTES)) add('NTU:' + r, r, seq.map(x => 'NTU:' + x), 'ntu');
   for (const [code, v] of Object.entries(S.stops)) (S.grid[cellKey(v[1], v[0])] ||= []).push(code);
 }
 function svcAt(code) {
   if (isNus(code)) { const id = nusId(code); return Object.keys(NUS_ROUTES).filter(r => NUS_ROUTES[r].includes(id)); }
+  if (isNtu(code)) { const id = ntuId(code); return Object.keys(NTU_ROUTES).filter(r => NTU_ROUTES[r].includes(id)); }
   return [...new Set((S.stopRoutes[code] || []).map(r => r.no))].sort(natSort);
 }
 function stopsNear(lat, lng, radius, limit = 15, publicOnly = false) {
@@ -587,7 +702,8 @@ async function fetchArrivals(code, force) {
   if (S.inflight[code]) return S.inflight[code];
   S.inflight[code] = (async () => {
     try {
-      if (isNus(code)) {
+      if (isNtu(code)) S.arr[code] = { t: Date.now(), err: null, timetable: true };
+      else if (isNus(code)) {
         const relay = nusRelay();
         if (!relay) S.arr[code] = { t: Date.now(), result: null, err: 'norelay' };
         else {
@@ -637,7 +753,7 @@ function renderNusBoard(el) {
     const tags = [running && s?.arrivalTime_veh_plate ? s.arrivalTime_veh_plate : '', hrs.txt].filter(Boolean).join(' · ');
     const dest = live && !running ? (hrs.on ? 'No shuttle reported' : 'Not running now') : (NUS_INFO[r]?.[1] || '');
     return `<div class="arow${live && !running ? ' off' : ''}"><a class="svc nus" href="#isb/${encodeURIComponent(r)}" aria-label="NUS shuttle ${esc(r)} route">${esc(r)}</a>
-      <div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>
+      ${running ? `<button class="dest" data-track="${esc(code)}|${esc(r)}" aria-label="Track NUS shuttle ${esc(r)}"><span class="d">${esc(dest)}${BELL}</span><span class="tags">${esc(tags)}</span></button>` : `<div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>`}
       ${nusEtaCell(et[0], true)}${nusEtaCell(et[1], false)}<span></span></div>`;
   }).join('');
   const ago = Math.round((Date.now() - data.t) / 1000);
@@ -646,7 +762,19 @@ function renderNusBoard(el) {
     (rows ? `<div class="bhead"><span>Shuttle</span><span>Route</span><span>Next</span><span>2nd</span><span></span></div>${rows}` : `<div class="msg">${only ? 'None of your chosen shuttles stop here.' : 'No NUS shuttles listed for this stop.'}</div>`) +
     `<div class="bfoot"><span>NUS shuttle</span><span><i class="ring"></i>Scheduled</span><span class="upd">${status}</span></div>`;
 }
+function renderNtuBoard(el) {
+  const code = el.dataset.arr, only = el.dataset.only ? el.dataset.only.split(',') : null;
+  let routes = svcAt(code); if (only) routes = routes.filter(r => only.includes(r));
+  const rows = routes.map(r => {
+    const n = ntuNow(r), info = NTU_INFO[r];
+    return `<div class="arow${n.on ? '' : ' off'}"><a class="svc ntu" style="background:${info[3]}" href="#ntu/${r}" aria-label="NTU ${esc(info[1])} route">${esc(info[0])}</a>
+      <div class="dest"><span class="d">${esc(info[2])}</span><span class="tags">${esc(info[1])}</span></div><span class="freq${n.on ? '' : ' off'}">${esc(n.txt)}</span></div>`;
+  }).join('');
+  el.innerHTML = (rows ? `<div class="bhead"><span>Shuttle</span><span>Route</span><span></span><span></span><span>Now</span></div>${rows}` : `<div class="msg">${only ? 'None of your chosen shuttles stop here.' : 'No NTU shuttles listed for this stop.'}</div>`) +
+    `<div class="bfoot"><span>NTU shuttle · timetable</span><span class="upd"><a href="${OMNIBUS_URL}" target="_blank" rel="noopener" style="color:inherit">Live in NTU Omnibus ↗</a></span></div>`;
+}
 function renderBoard(el) {
+  if (isNtu(el.dataset.arr)) return renderNtuBoard(el);
   if (isNus(el.dataset.arr)) return renderNusBoard(el);
   const code = el.dataset.arr, only = el.dataset.only ? el.dataset.only.split(',') : null;
   const data = S.arr[code];
@@ -661,7 +789,7 @@ function renderBoard(el) {
     const dest = dc ? (dc === n.origin_code ? 'Loop service' : 'To ' + stopName(dc)) : '';
     const tags = [typeName(n?.type), n?.feature === 'WAB' ? '♿ Accessible' : ''].filter(Boolean).join(' · ');
     return `<div class="arow"><a class="svc" href="#svc/${encodeURIComponent(s.no)}" aria-label="Bus ${esc(s.no)} route">${esc(s.no)}</a>
-      <div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>
+      ${s.next?.time ? `<button class="dest" data-track="${esc(code)}|${esc(s.no)}" aria-label="Track bus ${esc(s.no)}"><span class="d">${esc(dest)}${BELL}</span><span class="tags">${esc(tags)}</span></button>` : `<div class="dest"><span class="d">${esc(dest)}</span><span class="tags">${esc(tags)}</span></div>`}
       ${etaCell(s.next, true)}${etaCell(s.next2, false)}${etaCell(s.next3, false)}</div>`;
   }).join('');
   const offRows = (el.dataset.compact ? [] : off).map(no => `<div class="arow off"><a class="svc" href="#svc/${encodeURIComponent(no)}">${esc(no)}</a><div class="dest"><span class="d">Not operating now</span></div><span></span><span></span><span class="eta none">–</span></div>`).join('');
@@ -682,14 +810,140 @@ async function tick(force) {
     const sheetOpen = !$('#sheet').hidden;
     const boards = $$(sheetOpen ? '#sheet [data-arr]' : 'main [data-arr]').filter(el => el.offsetParent !== null);
     boards.forEach(renderBoard);
-    const codes = [...new Set(boards.map(b => b.dataset.arr))];
+    const codes = [...new Set([...boards.map(b => b.dataset.arr), ...(S.track ? [S.track.code] : [])])];
+    renderTracker();
     await Promise.all(codes.map(c => fetchArrivals(c, force)));
     boards.forEach(el => el.isConnected && renderBoard(el));
+    checkTracker();
   } finally { tickBusy = false; }
 }
 setInterval(() => tick(false), 10000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(false); });
 setInterval(() => { const d = new Date(); $('#clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()); }, 1000);
+
+/* ========= tracking ========= */
+const BELL = `<svg class="bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>`;
+const TRACK_MAX_MS = 90 * 60 * 1000;
+S.track = store.get('track', null);
+if (S.track && Date.now() - S.track.at > TRACK_MAX_MS) { store.del('track'); S.track = null; }
+const trackLabel = t => isNus(t.code) ? `NUS shuttle ${t.svc}` : `Bus ${t.svc}`;
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushCapable = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && !!nusRelay() && !(isIOS && !standalone());
+const b64uBytes = str => { const s = str.replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(s + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0)); };
+const bytesB64u = buf => { let s = ''; for (const b of new Uint8Array(buf)) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+let relayKeyP = null;
+function relayKey() {
+  return relayKeyP ||= fetch(nusRelay() + '/push/key').then(r => r.json()).then(j => {
+    if (!j.ok) throw Object.assign(new Error(j.message || j.error), { code: j.error });
+    return j.key;
+  }).catch(e => { relayKeyP = null; throw e; });
+}
+function etaNow(code, svc) {
+  const d = S.arr[code];
+  if (!d || d.err === 'norelay') return undefined;
+  if (isNus(code)) { const s = (d.result?.shuttles || []).find(x => nusRouteOf(x.name) === svc); const e = s ? nusEtas(s)[0] : null; return e ? e.m : null; }
+  const s = (d.services || []).find(x => x.no === svc);
+  return s?.next?.time ? Math.max(0, Math.floor((Date.parse(s.next.time) - Date.now()) / 60000)) : null;
+}
+let audioCtx = null;
+function unlockAudio() { try { audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume?.(); } catch {} }
+function beep() {
+  try {
+    unlockAudio(); const t0 = audioCtx.currentTime;
+    [0, 0.25].forEach(dt => { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(0.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(0.3, t0 + dt + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.2); o.connect(g).connect(audioCtx.destination); o.start(t0 + dt); o.stop(t0 + dt + 0.22); });
+  } catch {}
+}
+function pushNote() {
+  if (!nusRelay()) return 'Alerts sound while Reach Liao is open.';
+  if (isIOS && !standalone()) return 'For lock-screen alerts, add Reach Liao to your Home Screen (Share → Add to Home Screen) and open it from there. Until then, alerts sound while the app is open.';
+  if (!('PushManager' in window) || !('serviceWorker' in navigator)) return "This browser can't alert you once the app is closed, so alerts sound while it's open.";
+  if (Notification.permission === 'denied') return 'Notifications are off for Reach Liao in your phone settings, so alerts only sound while the app is open.';
+  return "You'll get a lock-screen alert even if the app is closed.";
+}
+function openTrackModal(code, svc) {
+  S.trackDraft = { code, svc, minutes: store.get('trackMin', 3) };
+  const eta = etaNow(code, svc);
+  $('#tmTitle').textContent = `Track ${isNus(code) ? 'NUS shuttle ' + svc : 'bus ' + svc}`;
+  $('#tmSub').textContent = `At ${stopName(code)} (${codeLabel(code)})` + (eta != null ? ` · next in ${eta <= 0 ? 'under a minute' : eta + ' min'}` : '');
+  $$('#tmMin button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.m === S.trackDraft.minutes));
+  $('#tmPush').textContent = pushNote();
+  $('#trackModal').hidden = false; $('#tmStart').focus();
+  if (pushCapable()) relayKey().catch(() => {});
+}
+function closeTrackModal() { $('#trackModal').hidden = true; S.trackDraft = null; }
+function saveTrack() { if (S.track) store.set('track', S.track); else store.del('track'); }
+function cancelPush(id) { if (id && nusRelay()) fetch(nusRelay() + '/track/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => {}); }
+function stopTracking(quiet) {
+  if (!S.track) return;
+  cancelPush(S.track.push); S.track = null; saveTrack(); renderTracker();
+  if (!quiet) toast('Tracking stopped');
+}
+async function startTracking() {
+  const d = S.trackDraft; if (!d) return;
+  store.set('trackMin', d.minutes);
+  if (S.track) cancelPush(S.track.push);
+  const t = { code: d.code, svc: d.svc, minutes: d.minutes, at: Date.now(), stage: 0, push: null, last: null };
+  S.track = t; saveTrack(); closeTrackModal(); unlockAudio(); renderTracker(); tick(true);
+  if (!pushCapable() || Notification.permission === 'denied') { toast(`Tracking ${trackLabel(t).toLowerCase()}`); return; }
+  try {
+    const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (perm !== 'granted') { toast('Notifications are off, so alerts sound while the app is open'); return; }
+    const [reg, key] = await Promise.all([navigator.serviceWorker.ready, relayKey()]);
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && sub.options?.applicationServerKey && bytesB64u(sub.options.applicationServerKey) !== key) { await sub.unsubscribe().catch(() => {}); sub = null; }
+    sub ||= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(key) });
+    const r = await fetch(nusRelay() + '/track', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sub: sub.toJSON(), kind: isNus(t.code) ? 'nus' : 'bus', stop: codeLabel(t.code), svc: t.svc, minutes: t.minutes, stopName: stopName(t.code), url: './#stop/' + t.code }) });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw Object.assign(new Error(j.message || j.error || 'Relay replied ' + r.status), { code: j.error });
+    if (S.track === t) { t.push = j.id; saveTrack(); renderTracker(); } else cancelPush(j.id);
+    toast('Lock-screen alert set');
+  } catch (e) {
+    toast(e.code === 'storage' ? 'Lock-screen alerts aren’t switched on in the relay yet, so alerts sound while the app is open' : 'Couldn’t set a lock-screen alert, so alerts sound while the app is open');
+  }
+}
+function renderTracker() {
+  const t = S.track, bar = $('#tracker');
+  document.body.classList.toggle('tracking', !!t);
+  if (!t) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const eta = etaNow(t.code, t.svc);
+  $('#tkSvc').textContent = t.svc; $('#tkSvc').className = 'svc' + (isNus(t.code) ? ' nus' : '');
+  $('#tkTitle').textContent = `${trackLabel(t)} · ${stopName(t.code)}`;
+  $('#tkSub').textContent = (t.push ? 'Lock-screen alert at ' : 'Alert at ') + (t.minutes <= 1 ? 'arrival' : t.minutes + ' min');
+  $('#tkEta').innerHTML = eta === undefined ? '<span class="spin" style="display:inline-block"></span>' : eta === null ? '<small>no bus</small>' : eta <= 0 ? 'Arr' : `${eta}<small>min</small>`;
+  $('#tkLink').href = '#stop/' + t.code;
+}
+function alertUser(t, eta) {
+  const msg = eta <= 1 ? `${trackLabel(t)} is arriving` : `${trackLabel(t)} is ${eta} min away`;
+  toast(msg); beep(); navigator.vibrate?.([200, 100, 200]);
+  if (!t.push && document.hidden && 'Notification' in window && Notification.permission === 'granted')
+    navigator.serviceWorker?.ready.then(r => r.showNotification(msg, { body: 'At ' + stopName(t.code), tag: 'track' })).catch(() => {});
+}
+function checkTracker() {
+  const t = S.track; if (!t) return;
+  if (Date.now() - t.at > TRACK_MAX_MS) return stopTracking(true);
+  const eta = etaNow(t.code, t.svc);
+  if (eta == null) return renderTracker();
+  if (t.stage >= 1 && t.last != null && eta > t.last + 3) { toast(`${trackLabel(t)} has left. Tracking stopped.`); return stopTracking(true); }
+  if (t.stage === 0 && eta <= t.minutes) { alertUser(t, eta); t.stage = (eta <= 1 || t.minutes <= 1) ? 2 : 1; t.last = eta; saveTrack(); }
+  else if (t.stage === 1 && eta <= 1) { alertUser(t, eta); t.stage = 2; t.last = eta; saveTrack(); }
+  if (t.stage === 2) { t.doneAt ||= Date.now(); if (Date.now() - t.doneAt > 3 * 60 * 1000) return stopTracking(true); }
+  renderTracker();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-track]'); if (!b) return;
+  e.preventDefault(); const i = b.dataset.track.lastIndexOf('|');
+  openTrackModal(b.dataset.track.slice(0, i), b.dataset.track.slice(i + 1));
+});
+$('#tmMin').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b || !S.trackDraft) return; S.trackDraft.minutes = +b.dataset.m; $$('#tmMin button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+$('#tmCancel').onclick = closeTrackModal;
+$('#trackModal').addEventListener('click', e => { if (e.target.id === 'trackModal') closeTrackModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#trackModal').hidden) closeTrackModal(); });
+$('#tmStart').onclick = startTracking;
+$('#tkStop').onclick = () => stopTracking();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ========= saved stops ========= */
 function saveSaved() { store.set('saved', S.saved); renderSync(); }
@@ -803,12 +1057,12 @@ $('#importBtn').onclick = () => { if (importCode($('#importCode').value)) { $('#
 /* ========= stop sheet ========= */
 function openSheet(title) {
   const sh = $('#sheet'); sh.hidden = false; sh.scrollTop = 0;
-  $('#sheetTitle').textContent = title; document.body.style.overflow = 'hidden';
+  $('#sheetTitle').textContent = title; document.body.style.overflow = 'hidden'; document.body.classList.add('sheet-open');
   if (S.sheetMap) { S.sheetMap.remove(); S.sheetMap = null; }
   return $('#sheetBody');
 }
 function closeSheet() {
-  $('#sheet').hidden = true; document.body.style.overflow = '';
+  $('#sheet').hidden = true; document.body.style.overflow = ''; document.body.classList.remove('sheet-open');
   if (S.sheetMap) { S.sheetMap.remove(); S.sheetMap = null; }
 }
 $('#sheetBack').onclick = () => { if (history.length > 1 && S.navDepth > 0) history.back(); else location.hash = '#' + S.tab; };
@@ -826,11 +1080,11 @@ function makeMap(el, opts = {}) {
 }
 function stopMarker(code, opts = {}) {
   const s = S.stops[code];
-  return L.circleMarker([s[1], s[0]], { radius: opts.r || 7, color: '#fff', weight: 2, fillColor: opts.fill || cssVar(isNus(code) ? '--nus' : '--accent'), fillOpacity: 1 });
+  return L.circleMarker([s[1], s[0]], { radius: opts.r || 7, color: '#fff', weight: 2, fillColor: opts.fill || cssVar(isNus(code) ? '--nus' : isNtu(code) ? '--ntu' : '--accent'), fillOpacity: 1 });
 }
 
 function showStop(code) {
-  if (isNus(code) && S.stops[code]) return showNusStop(code);
+  if (isShuttle(code) && S.stops[code]) return showNusStop(code);
   const s = S.stops[code];
   const body = openSheet('Bus stop');
   if (!s) { body.innerHTML = `<div class="card empty"><p>Stop <b>${esc(code)}</b> isn't in the bus data.</p></div>`; return; }
@@ -865,21 +1119,21 @@ function showStop(code) {
 
 const STAR_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z"/></svg>`;
 function showNusStop(code) {
-  const s = S.stops[code], id = nusId(code), routes = svcAt(code);
-  const lta = NUS_LTA[id] && S.stops[NUS_LTA[id]] ? NUS_LTA[id] : null;
-  const body = openSheet('NUS shuttle stop');
+  const s = S.stops[code], ntu = isNtu(code), id = codeLabel(code), routes = svcAt(code);
+  const ltaMap = ntu ? NTU_LTA : NUS_LTA, lta = ltaMap[id] && S.stops[ltaMap[id]] ? ltaMap[id] : null;
+  const body = openSheet(ntu ? 'NTU shuttle stop' : 'NUS shuttle stop');
   body.innerHTML = `
-    <div class="stop-head"><div class="main"><h2>${esc(s[2])}</h2><div class="row muted" style="margin-top:6px"><span class="tag-nus">NUS shuttle</span><span class="code">${esc(id)}</span></div></div>
+    <div class="stop-head"><div class="main"><h2>${esc(s[2])}</h2><div class="row muted" style="margin-top:6px">${ntu ? '<span class="tag-ntu">NTU shuttle</span>' : '<span class="tag-nus">NUS shuttle</span>'}<span class="code">${esc(id)}</span></div></div>
       <button class="icon-btn star" id="starBtn" aria-pressed="${isSaved(code)}" aria-label="Save this stop" title="Save this stop">${STAR_SVG}</button></div>
     ${boardHTML(code)}
-    <div class="row"><button class="btn" id="refreshArr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh</button><a class="btn" href="#plan" id="planFromHere">Plan from here</a></div>
+    <div class="row"><button class="btn" id="refreshArr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Refresh</button><a class="btn" href="#plan" id="planFromHere">Plan from here</a>${ntu ? `<a class="btn" href="${OMNIBUS_URL}" target="_blank" rel="noopener">NTU Omnibus ↗</a>` : ''}</div>
     ${lta ? `<div class="card"><div class="row"><h3>Public buses here</h3><span class="spacer"></span><a class="small" href="#stop/${lta}">${esc(stopName(lta))} · ${lta}</a></div>${boardHTML(lta, { compact: true })}</div>` : ''}
     <div class="minimap" id="stopMap"></div>
-    <div class="card"><h3>NUS shuttles at this stop</h3><div class="chips">${routes.map(r => `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(r)}">${esc(r)}</a>`).join('') || '<span class="muted small">None listed</span>'}</div></div>
-    ${routes.length ? `<details class="fold"><summary>Usual operating hours</summary><div class="fbody">${nusHoursTable(routes)}</div></details>` : ''}`;
+    <div class="card"><h3>${ntu ? 'NTU' : 'NUS'} shuttles at this stop</h3><div class="chips">${routes.map(r => ntu ? `<a class="chip ntu" style="text-decoration:none;color:var(--ink);--c:${NTU_INFO[r][3]}" href="#ntu/${r}">${esc(NTU_INFO[r][0])}</a>` : `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(r)}">${esc(r)}</a>`).join('') || '<span class="muted small">None listed</span>'}</div></div>
+    ${routes.length ? `<details class="fold"><summary>${ntu ? 'Timetable' : 'Usual operating hours'}</summary><div class="fbody">${ntu ? ntuHoursTable(routes) : nusHoursTable(routes)}</div></details>` : ''}`;
   $('#starBtn').onclick = e => { toggleSave(code); e.currentTarget.setAttribute('aria-pressed', isSaved(code)); };
   $('#refreshArr').onclick = () => tick(true);
-  $('#planFromHere').onclick = () => { setPlace('from', { name: `${s[2]} (NUS)`, lat: s[1], lng: s[0] }); };
+  $('#planFromHere').onclick = () => { setPlace('from', { name: `${s[2]} (${ntu ? 'NTU' : 'NUS'})`, lat: s[1], lng: s[0] }); };
   requestAnimationFrame(() => {
     S.sheetMap = makeMap('stopMap', { zoomControl: false, dragging: true, scrollWheelZoom: false }).setView([s[1], s[0]], 17);
     stopsNear(s[1], s[0], 300, 30).forEach(n => { if (n.code !== code) stopMarker(n.code, { r: 5, fill: cssVar('--muted') }).addTo(S.sheetMap).on('click', () => location.hash = '#stop/' + n.code); });
@@ -906,6 +1160,26 @@ function showIsb(no) {
     S.sheetMap = makeMap('svcMap', { scrollWheelZoom: false });
     L.polyline(pts, { color: cssVar('--nus'), weight: 4, opacity: .85 }).addTo(S.sheetMap);
     route.forEach((c, i) => S.stops['NUS:' + c] && stopMarker('NUS:' + c, { r: (i === 0 || i === route.length - 1) ? 7 : 5 }).addTo(S.sheetMap).bindPopup(`<div class="pop-t">${esc(NUS_STOPS[c][2])}</div><div class="muted small">${esc(c)}</div><button class="pop-b" onclick="location.hash='#stop/NUS:${c}'">Live times</button>`));
+    S.sheetMap.fitBounds(L.latLngBounds(pts), { padding: [20, 20] });
+  });
+}
+function showNtu(no) {
+  no = String(no).toUpperCase();
+  const route = NTU_ROUTES[no], info = NTU_INFO[no], body = openSheet('NTU shuttle');
+  if (!route) { body.innerHTML = `<div class="card empty"><p>NTU shuttle <b>${esc(no)}</b> isn't in the route list.</p></div>`; return; }
+  const n = ntuNow(no);
+  body.innerHTML = `
+    <div class="stop-head"><div class="main"><div class="row" style="gap:10px"><div class="svc-big" style="color:${info[3]}">${esc(info[0])}</div><span class="tag-ntu">NTU shuttle</span></div><div class="muted" style="margin-top:4px">${esc(info[1])} · ${esc(info[2])}</div></div></div>
+    <div class="note">Loop: starts and ends at ${esc(NTU_STOPS[route[0]][2])}. ${n.on ? 'Now running ' + esc(n.txt.toLowerCase()) : esc(n.txt)}.</div>
+    <div class="minimap" id="svcMap" style="height:240px"></div>
+    <details class="fold"><summary>Timetable</summary><div class="fbody">${ntuHoursTable([no])}</div></details>
+    <div><h3 style="margin-bottom:8px">${route.length} stops</h3>
+    <div class="list seq">${route.map((c, i) => `<a class="item" href="#stop/NTU:${esc(c)}" style="text-decoration:none;color:inherit"><span class="dot" style="border-color:${info[3]}"></span><span class="n">${i + 1}</span><span class="main"><span class="t">${esc(NTU_STOPS[c]?.[2] || c)}</span></span></a>`).join('')}</div></div>`;
+  requestAnimationFrame(() => {
+    const pts = route.map(c => [NTU_STOPS[c][1], NTU_STOPS[c][0]]);
+    S.sheetMap = makeMap('svcMap', { scrollWheelZoom: false });
+    L.polyline(pts, { color: info[3], weight: 4, opacity: .85 }).addTo(S.sheetMap);
+    route.forEach(c => stopMarker('NTU:' + c, { r: 5, fill: info[3] }).addTo(S.sheetMap).bindPopup(`<div class="pop-t">${esc(NTU_STOPS[c][2])}</div><button class="pop-b" onclick="location.hash='#stop/NTU:${c}'">Shuttles</button>`));
     S.sheetMap.fitBounds(L.latLngBounds(pts), { padding: [20, 20] });
   });
 }
@@ -975,7 +1249,7 @@ function refreshNear() {
   $('#nearHint').textContent = m.getZoom() < 15 ? 'Zoom in or tap the locate button to see stops around you.' : 'Stops closest to the crosshair. Drag the map to look elsewhere.';
   $('#nearList').innerHTML = near.length ? near.map(n => {
     const s = S.stops[n.code], sv = svcAt(n.code);
-    return `<a class="item" href="#stop/${n.code}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(s[2])}</span><span class="s">${esc(s[3])} · ${sv.slice(0, 8).join(' ')}${sv.length > 8 ? ' +' + (sv.length - 8) : ''}</span></span><span class="dist">${fmtDist(n.d)}</span>${isNus(n.code) ? '<span class="tag-nus">NUS</span>' : `<span class="code">${n.code}</span>`}</a>`;
+    return `<a class="item" href="#stop/${n.code}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(s[2])}</span><span class="s">${esc(s[3])} · ${sv.slice(0, 8).join(' ')}${sv.length > 8 ? ' +' + (sv.length - 8) : ''}</span></span><span class="dist">${fmtDist(n.d)}</span>${isNus(n.code) ? '<span class="tag-nus">NUS</span>' : isNtu(n.code) ? '<span class="tag-ntu">NTU</span>' : `<span class="code">${n.code}</span>`}</a>`;
   }).join('') : `<div class="item"><span class="main muted">No bus stops within 800 m of the crosshair.</span></div>`;
 }
 function locate(quiet) {
@@ -998,18 +1272,20 @@ const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, '
 function searchStops(q, limit = 30) {
   q = q.trim(); if (!q) return [];
   if (/^\d{2,5}$/.test(q)) return Object.keys(S.stops).filter(c => c.startsWith(q)).slice(0, limit);
-  const toks = norm(q).split(' ').map(t => ABBR[t] || t), wantNus = toks.some(t => /^(nus|isb|shuttle)$/.test(t));
+  const toks = norm(q).split(' ').map(t => ABBR[t] || t), wantNus = toks.some(t => /^(nus|isb|shuttle)$/.test(t)), wantNtu = toks.some(t => /^(ntu|shuttle)$/.test(t));
   const res = [];
   for (const [code, s] of Object.entries(S.stops)) {
     const name = norm(s[2]), hay = name + ' ' + norm(s[3]) + ' ' + code;
     const words = hay.split(' ');
-    if (toks.every(t => words.some(w => w.startsWith(t)) || hay.includes(t))) res.push({ code, score: (wantNus && isNus(code)) ? -1 : name.startsWith(toks[0]) ? 0 : 1 });
+    if (toks.every(t => words.some(w => w.startsWith(t)) || hay.includes(t))) res.push({ code, score: ((wantNus && isNus(code)) || (wantNtu && isNtu(code))) ? -1 : name.startsWith(toks[0]) ? 0 : 1 });
   }
   return res.sort((a, b) => a.score - b.score || stopName(a.code).localeCompare(stopName(b.code))).slice(0, limit).map(r => r.code);
 }
 function searchServices(q) {
   const k = q.trim().toLowerCase().replace(/\s+/g, ''); if (!k) return [];
-  if (/^(nus|isb|shuttle|internal)/.test(k)) return Object.keys(NUS_ROUTES).map(r => 'NUS:' + r);
+  if (/^(nus|isb)/.test(k)) return Object.keys(NUS_ROUTES).map(r => 'NUS:' + r);
+  if (/^(ntu|campusloop|campusrider|cl-?[rb]$|cwr$)/.test(k)) return Object.keys(NTU_ROUTES).map(r => 'NTU:' + r);
+  if (/^(shuttle|internal)/.test(k)) return [...Object.keys(NUS_ROUTES).map(r => 'NUS:' + r), ...Object.keys(NTU_ROUTES).map(r => 'NTU:' + r)];
   if (k.length > 5 || !/^[0-9a-z]+$/.test(k)) return [];
   const nus = Object.keys(NUS_ROUTES).filter(r => r.toLowerCase().startsWith(k)).map(r => 'NUS:' + r);
   return [...nus, ...Object.keys(S.services).filter(n => n.toLowerCase().startsWith(k)).sort(natSort)].slice(0, 16);
@@ -1026,10 +1302,10 @@ const titleCase = s => (s = String(s || ''), (s !== s.toUpperCase() || !/\s/.tes
 let searchSeq = 0;
 const runSearch = debounce(async () => {
   const q = $('#q').value, out = $('#searchOut'), seq = ++searchSeq;
-  if (!q.trim()) { out.innerHTML = `<p class="muted small" style="margin:0">Try “2”, “96041”, “Tampines Int”, “Changi Airport”, or “NUS” for campus shuttles.</p>`; return; }
+  if (!q.trim()) { out.innerHTML = `<p class="muted small" style="margin:0">Try “2”, “96041”, “Tampines Int”, “Changi Airport”, or “NUS” / “NTU” for campus shuttles.</p>`; return; }
   const sv = searchServices(q), st = searchStops(q);
-  out.innerHTML = (sv.length ? `<div class="card"><h3>Bus services</h3><div class="chips">${sv.map(n => isNus(n) ? `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(nusId(n))}" title="NUS shuttle">${esc(nusId(n))}</a>` : `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '') +
-    (st.length ? `<div><h3 style="margin-bottom:8px">Bus stops</h3><div class="list">${st.map(c => `<a class="item" href="#stop/${c}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c][3])} · ${svcAt(c).slice(0, 8).join(' ')}</span></span>${isNus(c) ? '<span class="tag-nus">NUS</span>' : `<span class="code">${c}</span>`}</a>`).join('')}</div></div>` : '') +
+  out.innerHTML = (sv.length ? `<div class="card"><h3>Bus services</h3><div class="chips">${sv.map(n => isNtu(n) ? `<a class="chip ntu" style="text-decoration:none;color:var(--ink);--c:${NTU_INFO[ntuId(n)][3]}" href="#ntu/${ntuId(n)}" title="NTU shuttle">NTU ${esc(NTU_INFO[ntuId(n)][0])}</a>` : isNus(n) ? `<a class="chip nus" style="text-decoration:none;color:var(--ink)" href="#isb/${encodeURIComponent(nusId(n))}" title="NUS shuttle">${esc(nusId(n))}</a>` : `<a class="chip" style="text-decoration:none;color:var(--ink)" href="#svc/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '') +
+    (st.length ? `<div><h3 style="margin-bottom:8px">Bus stops</h3><div class="list">${st.map(c => `<a class="item" href="#stop/${c}" style="text-decoration:none;color:inherit"><span class="main"><span class="t">${esc(stopName(c))}</span><span class="s">${esc(S.stops[c][3])} · ${svcAt(c).slice(0, 8).join(' ')}</span></span>${isNus(c) ? '<span class="tag-nus">NUS</span>' : isNtu(c) ? '<span class="tag-ntu">NTU</span>' : `<span class="code">${c}</span>`}</a>`).join('')}</div></div>` : '') +
     `<div id="placeOut"></div>`;
   if (q.trim().length >= 3 && !/^\d{1,5}$/.test(q.trim())) {
     $('#placeOut').innerHTML = `<div class="loading small"><span class="spin"></span>Searching places…</div>`;
@@ -1043,7 +1319,14 @@ const runSearch = debounce(async () => {
 $('#q').addEventListener('input', runSearch);
 
 /* ========= NUS relay ========= */
+async function renderAlertStatus() {
+  const el = $('#alertStatus'); if (!nusRelay()) { el.textContent = ''; return; }
+  el.innerHTML = '<span class="muted">Checking bus alerts…</span>';
+  try { await relayKey(); el.innerHTML = `<b style="color:var(--ok)">Lock-screen bus alerts are on.</b> ${isIOS && !standalone() ? 'Open Reach Liao from your Home Screen to use them.' : 'Tap any bus in a timing board to track it.'}`; }
+  catch (e) { el.innerHTML = e.code === 'storage' ? '<b>Lock-screen bus alerts are off.</b> The relay needs its storage and schedule settings; see the <a href="https://github.com/jonperip/reach-liao#bus-tracking-alerts" target="_blank" rel="noopener">setup steps</a>. In-app alerts still work.' : '<span class="muted">Couldn’t check bus alerts right now.</span>'; }
+}
 function renderNus() {
+  renderAlertStatus();
   const r = nusRelay();
   $('#nusStatus').innerHTML = r ? `<b style="color:var(--ok)">Connected</b> to ${esc(r.replace(/^https?:\/\//, ''))}.` : '<b>Not connected.</b>';
   if (document.activeElement !== $('#nusRelayIn')) $('#nusRelayIn').value = store.get('nusRelay', '') || '';
@@ -1118,7 +1401,7 @@ function setupAC(which) {
   const run = debounce(async () => {
     const q = inp.value.trim(), my = ++seq;
     if (q.length < 2) { items = []; show(); return; }
-    const local = searchStops(q, 4).map(c => ({ name: `${stopName(c)} (${isNus(c) ? 'NUS' : c})`, sub: S.stops[c][3] + (isNus(c) ? '' : ' · bus stop'), lat: S.stops[c][1], lng: S.stops[c][0], code: c }));
+    const local = searchStops(q, 4).map(c => ({ name: `${stopName(c)} (${isNus(c) ? 'NUS' : isNtu(c) ? 'NTU' : c})`, sub: S.stops[c][3] + (isShuttle(c) ? '' : ' · bus stop'), lat: S.stops[c][1], lng: S.stops[c][0], code: c }));
     items = local; show();
     if (q.length >= 3) { try { const pl = await omSearch(q); if (my === seq) { items = [...pl, ...local]; show(); } } catch {} }
   }, 250);
@@ -1157,73 +1440,141 @@ async function onemapRoute(from, to, when, mode) {
   return its;
 }
 
-/* Bus-only planner: direct buses and one-transfer trips between stops near each end. */
-function busPlanner(from, to, when) {
-  const WALK = 75, PER_STOP = 1.6, WAIT = 5, XFER = 3; // m/min, min per stop, min wait per boarding, transfer penalty
-  let O = stopsNear(from.lat, from.lng, 500, 10, true), D = stopsNear(to.lat, to.lng, 500, 10, true);
-  if (O.length < 3) O = stopsNear(from.lat, from.lng, 1000, 5, true);
-  if (D.length < 3) D = stopsNear(to.lat, to.lng, 1000, 5, true);
+/* Bus planner: direct and one-transfer trips between stops near each end, over public buses
+   plus NUS and NTU shuttles (loop routes wrap around). Ride times are estimates. */
+function routeRunning(R, when) {
+  if (R.kind === 'nus') return nusHoursToday(R.no, when).on;
+  if (R.kind === 'ntu') return ntuNow(R.no, when).on;
+  return true;
+}
+function legParams(R, when) {
+  if (R.kind === 'nus') return { per: 1.2, wait: 4 };
+  if (R.kind === 'ntu') return { per: 1.3, wait: ntuNow(R.no, when).wait || 4 };
+  return { per: 1.6, wait: 5 };
+}
+// Stops reachable from position i along a route, as [index, hops]. Loops wrap past their end.
+function* ahead(R, i, max = 70) {
+  const L = R.seq.length, cyc = R.loop ? L - 1 : L;
+  if (R.loop && i === L - 1) i = 0;
+  for (let k = 1; k <= max; k++) {
+    let j = i + k;
+    if (R.loop) { if (k >= cyc) break; j %= cyc; } else if (j >= L) break;
+    yield [j, k];
+  }
+}
+function* behind(R, i, max = 70) {
+  const L = R.seq.length, cyc = R.loop ? L - 1 : L;
+  if (R.loop && i === 0) i = L - 1;
+  for (let k = 1; k <= max; k++) {
+    let j = i - k;
+    if (R.loop) { if (k >= cyc) break; j = ((j % cyc) + cyc) % cyc; } else if (j < 0) break;
+    yield [j, k];
+  }
+}
+function busPlanner(from, to, when, opts = {}) {
+  const WALK = 75, XFER = 3; // walking m/min, transfer penalty in min
+  const use = r => { const R = S.routeSeq[r.key]; return R && (!opts.kinds || opts.kinds.includes(R.kind)) && routeRunning(R, when); };
+  const near = (pt, rad, n) => stopsNear(pt.lat, pt.lng, rad, n).filter(x => (S.stopRoutes[x.code] || []).some(use));
+  let O = near(from, 500, 14), D = near(to, 500, 14);
+  if (O.length < 3) O = near(from, 1000, 6);
+  if (D.length < 3) D = near(to, 1000, 6);
   if (!O.length || !D.length) return [];
   const dWalk = new Map(D.map(d => [d.code, d.d]));
-  const options = [];
-  // reach[stop] = best first leg arriving at that stop
-  const reach = new Map();
+  const options = [], reach = new Map(); // reach[stop] = best first leg arriving there
   for (const o of O) for (const r of S.stopRoutes[o.code] || []) {
-    const route = S.services[r.no].routes[r.dir];
-    for (let j = r.idx + 1; j < route.length && j - r.idx <= 70; j++) {
-      const c = route[j], t = o.d / WALK + WAIT + (j - r.idx) * PER_STOP;
-      if (dWalk.has(c)) options.push({ t: t + dWalk.get(c) / WALK, legs: [{ kind: 'walk', m: o.d, to: o.code }, { kind: 'bus', no: r.no, from: o.code, to: c, n: j - r.idx }, { kind: 'walk', m: dWalk.get(c), toPlace: to.name }] });
+    if (!use(r)) continue;
+    const R = S.routeSeq[r.key], P = legParams(R, when);
+    for (const [j, k] of ahead(R, r.idx)) {
+      const c = R.seq[j], t = o.d / WALK + P.wait + k * P.per;
+      if (c === o.code) continue;
+      if (dWalk.has(c)) options.push({ t: t + dWalk.get(c) / WALK, legs: [{ kind: 'walk', m: o.d, to: o.code }, { kind: 'bus', no: r.no, rk: R.kind, from: o.code, to: c, n: k, P }, { kind: 'walk', m: dWalk.get(c), toPlace: to.name }] });
       const prev = reach.get(c);
-      if (!prev || t < prev.t) reach.set(c, { t, no: r.no, from: o.code, n: j - r.idx, walk: o.d });
+      if (!prev || t < prev.t) reach.set(c, { t, no: r.no, rk: R.kind, from: o.code, n: k, walk: o.d, P });
     }
   }
-  const destSvcs = new Set(D.flatMap(d => (S.stopRoutes[d.code] || []).map(r => r.no)));
   for (const d of D) for (const r of S.stopRoutes[d.code] || []) {
-    const route = S.services[r.no].routes[r.dir];
-    for (let i = r.idx - 1; i >= 0 && r.idx - i <= 70; i--) {
-      const x = route[i];
-      // transfer at the same stop or one within 150 m (e.g. across the road)
+    if (!use(r)) continue;
+    const R = S.routeSeq[r.key], P = legParams(R, when);
+    for (const [i, k] of behind(R, r.idx)) {
+      const x = R.seq[i];
+      // transfer at the same stop or one within 150 m (across the road, or a shuttle stop beside a bus stop)
       const cands = reach.has(x) ? [[x, 0]] : [];
-      if (!cands.length) for (const n of stopsNear(S.stops[x][1], S.stops[x][0], 150, 4, true)) if (n.code !== x && reach.has(n.code)) cands.push([n.code, n.d]);
+      if (!cands.length && S.stops[x]) for (const n of stopsNear(S.stops[x][1], S.stops[x][0], 150, 6)) if (n.code !== x && reach.has(n.code)) cands.push([n.code, n.d]);
       for (const [xc, xw] of cands) {
-        const a = reach.get(xc); if (a.no === r.no) continue;
-        const t = a.t + XFER + xw / WALK + WAIT + (r.idx - i) * PER_STOP + d.d / WALK;
-        options.push({ t, legs: [{ kind: 'walk', m: a.walk, to: a.from }, { kind: 'bus', no: a.no, from: a.from, to: xc, n: a.n }, ...(xw ? [{ kind: 'walk', m: xw, to: x }] : []), { kind: 'bus', no: r.no, from: x, to: d.code, n: r.idx - i }, { kind: 'walk', m: d.d, toPlace: to.name }] });
+        const a = reach.get(xc); if (a.no === r.no && a.rk === R.kind) continue;
+        const t = a.t + XFER + xw / WALK + P.wait + k * P.per + d.d / WALK;
+        options.push({ t, legs: [{ kind: 'walk', m: a.walk, to: a.from }, { kind: 'bus', no: a.no, rk: a.rk, from: a.from, to: xc, n: a.n, P: a.P }, ...(xw ? [{ kind: 'walk', m: xw, to: x }] : []), { kind: 'bus', no: r.no, rk: R.kind, from: x, to: d.code, n: k, P }, { kind: 'walk', m: d.d, toPlace: to.name }] });
       }
     }
   }
   // best option per bus combination
   const best = new Map();
   for (const o of options) {
-    const key = o.legs.filter(l => l.kind === 'bus').map(l => l.no).join('>');
+    const key = o.legs.filter(l => l.kind === 'bus').map(l => l.rk + l.no).join('>');
     if (!best.has(key) || o.t < best.get(key).t) best.set(key, o);
   }
-  const sorted = [...best.values()].sort((a, b) => (a.legs.length - b.legs.length) * 4 + (a.t - b.t));
-  const direct = sorted.filter(o => o.legs.filter(l => l.kind === 'bus').length === 1);
-  const xfer = sorted.filter(o => o.legs.filter(l => l.kind === 'bus').length === 2).sort((a, b) => a.t - b.t);
-  direct.sort((a, b) => a.t - b.t);
+  const all = [...best.values()];
+  const direct = all.filter(o => o.legs.filter(l => l.kind === 'bus').length === 1).sort((a, b) => a.t - b.t);
+  const xfer = all.filter(o => o.legs.filter(l => l.kind === 'bus').length === 2).sort((a, b) => a.t - b.t);
   const bestDirect = direct.length ? direct[0].t : Infinity;
-  const pick = [...direct.slice(0, 4), ...xfer.filter(o => o.t < bestDirect - 3).slice(0, direct.length ? 2 : 5)].sort((a, b) => a.t - b.t).slice(0, 5);
+  const pick = [...direct.slice(0, 4), ...xfer.filter(o => o.t < bestDirect - 3).slice(0, direct.length ? 2 : 5)].sort((a, b) => a.t - b.t).slice(0, opts.limit || 5);
   const start = when.getTime();
   return pick.map(o => {
     let t = start;
     const legs = o.legs.map(l => {
       if (l.kind === 'walk') { const dur = l.m / WALK * 60; const leg = { mode: 'WALK', distance: l.m, duration: dur, startTime: t, to: { name: l.toPlace || stopName(l.to) } }; t += dur * 1000; return leg; }
-      const dur = (WAIT + l.n * PER_STOP) * 60;
-      const leg = { mode: 'BUS', route: l.no, from: { name: stopName(l.from), stopCode: l.from }, to: { name: stopName(l.to), stopCode: l.to }, numIntermediateStops: l.n - 1, duration: dur, startTime: t, estimate: true };
+      const dur = (l.P.wait + l.n * l.P.per) * 60;
+      const leg = { mode: 'BUS', route: l.no, shuttle: l.rk === 'bus' ? null : l.rk, from: { name: stopName(l.from), stopCode: l.from }, to: { name: stopName(l.to), stopCode: l.to }, numIntermediateStops: l.n - 1, duration: dur, startTime: t, estimate: true };
       t += dur * 1000; return leg;
     }).filter(l => !(l.mode === 'WALK' && l.distance < 15));
-    return { duration: (t - start) / 1000, startTime: start, endTime: t, legs, estimate: true, walkDistance: o.legs.filter(l => l.kind === 'walk').reduce((s, l) => s + l.m, 0), transfers: o.legs.filter(l => l.kind === 'bus').length - 1 };
+    return { duration: (t - start) / 1000, startTime: start, endTime: t, legs, estimate: true, walkDistance: o.legs.filter(l => l.kind === 'walk').reduce((a, l) => a + l.m, 0), transfers: o.legs.filter(l => l.kind === 'bus').length - 1 };
   });
 }
 
+/* Campus last mile: OneMap to (or from) a campus gateway MRT stop, plus the shuttle. */
+const GATEWAYS = { nus: ['NUS:KR-MRT', 'NUS:BG-MRT'], ntu: ['NTU:PIONEER'] };
+function campusOf(pt) {
+  const n = stopsNear(pt.lat, pt.lng, 450, 6).find(x => isShuttle(x.code));
+  return n ? { org: isNus(n.code) ? 'nus' : 'ntu', d: n.d } : null;
+}
+function shiftIt(it, ms) { return { ...it, startTime: it.startTime + ms, endTime: it.endTime + ms, legs: it.legs.map(l => ({ ...l, startTime: (l.startTime || 0) + ms })) }; }
+function joinIts(a, b, via) {
+  return { legs: [...a.legs, ...b.legs], startTime: a.startTime, endTime: b.endTime, duration: (b.endTime - a.startTime) / 1000, estimate: true, via,
+    walkDistance: (a.walkDistance || 0) + (b.walkDistance || 0), transfers: (a.transfers || 0) + (b.transfers || 0) + 1, fare: a.fare || b.fare };
+}
+const bestOf = its => its.slice().sort((x, y) => x.duration - y.duration)[0];
+async function campusCombos(from, to, when, mode) {
+  const cf = campusOf(from), ct = campusOf(to), out = [];
+  if (cf && ct && cf.org === ct.org) return busPlanner(from, to, when, { kinds: [cf.org], limit: 2 }).map(it => ({ ...it, via: `${cf.org.toUpperCase()} shuttle` }));
+  const gwPt = code => ({ lat: S.stops[code][1], lng: S.stops[code][0], name: stopName(code) });
+  const jobs = [];
+  if (ct) for (const g of GATEWAYS[ct.org]) jobs.push((async () => {
+    if (dist(from.lat, from.lng, S.stops[g][1], S.stops[g][0]) < 800) return;
+    const om = bestOf(await onemapRoute(from, gwPt(g), when, mode));
+    const sh = busPlanner(gwPt(g), to, new Date(om.endTime), { kinds: [ct.org], limit: 1 })[0];
+    if (sh && sh.legs.some(l => l.mode === 'BUS')) out.push(joinIts(om, sh, `${ct.org.toUpperCase()} shuttle`));
+  })().catch(() => {}));
+  else if (cf) for (const g of GATEWAYS[cf.org]) jobs.push((async () => {
+    if (dist(to.lat, to.lng, S.stops[g][1], S.stops[g][0]) < 800) return;
+    const sh = busPlanner(from, gwPt(g), when, { kinds: [cf.org], limit: 1 })[0];
+    if (!sh || !sh.legs.some(l => l.mode === 'BUS')) return;
+    const om = bestOf(await onemapRoute(gwPt(g), to, new Date(sh.endTime), mode));
+    out.push(joinIts(sh, shiftIt(om, Math.max(0, sh.endTime - om.startTime)), `${cf.org.toUpperCase()} shuttle`));
+  })().catch(() => {}));
+  await Promise.all(jobs);
+  return out;
+}
+
 function legColor(l) {
+  if (l.shuttle === 'nus') return cssVar('--nus');
+  if (l.shuttle === 'ntu') return NTU_INFO[l.route]?.[3] || cssVar('--ntu');
   if (l.mode === 'BUS') return BUS_COLOR;
   const k = String(l.route || l.routeShortName || '').replace(/[^A-Z]/gi, '').slice(0, 2).toUpperCase();
   return LINE_COLORS[k] || '#5A6A64';
 }
 function legLabel(l) {
   if (l.mode === 'WALK') return 'Walk';
+  if (l.shuttle === 'ntu') return NTU_INFO[l.route]?.[0] || l.route;
   if (l.mode === 'BUS') return String(l.route || l.routeShortName || 'Bus');
   return String(l.route || l.routeShortName || l.mode).toUpperCase();
 }
@@ -1237,16 +1588,16 @@ function itinHTML(it, idx, open) {
     return l.mode === 'WALK' ? `<span class="seg-l walk" style="flex:${w}" title="Walk"></span>` : `<span class="seg-l" style="flex:${w};background:${legColor(l)}">${esc(legLabel(l))}</span>`;
   }).join('');
   const fare = it.fare && !isNaN(+it.fare) ? `$${(+it.fare).toFixed(2)} adult` : '';
-  const meta = [`${fmtTime(it.startTime)} → ${fmtTime(it.endTime)}`, it.transfers != null ? `${it.transfers} transfer${it.transfers === 1 ? '' : 's'}` : '', it.walkDistance ? `${fmtDist(it.walkDistance)} walk` : '', fare].filter(Boolean).join(' · ');
+  const meta = [it.via ? 'via ' + it.via : '', `${fmtTime(it.startTime)} → ${fmtTime(it.endTime)}`, it.transfers != null ? `${it.transfers} transfer${it.transfers === 1 ? '' : 's'}` : '', it.walkDistance ? `${fmtDist(it.walkDistance)} walk` : '', fare].filter(Boolean).join(' · ');
   const legs = it.legs.map(l => {
     const lm = Math.max(1, Math.round((l.duration || 0) / 60));
     if (l.mode === 'WALK') return `<div class="leg"><span class="badge walk">Walk</span><div><div class="lt">Walk ${fmtDist(l.distance || 0)} · ${lm} min</div><div class="ls">to ${esc(titleCase(l.to?.name || ''))}</div></div></div>`;
     const n = l.numIntermediateStops != null ? l.numIntermediateStops + 1 : (l.intermediateStops?.length ?? null);
     if (l.mode === 'BUS') {
       const code = l.from?.stopCode && S.stops[l.from.stopCode] ? l.from.stopCode : null;
-      const no = busNo(l);
-      return `<div class="leg"><span class="badge" style="background:${legColor(l)}">${esc(no)}</span><div style="min-width:0"><div class="lt">Bus ${esc(no)}${n ? ` · ${n} stop${n > 1 ? 's' : ''}` : ''}${l.estimate ? ` · ~${lm} min` : ` · ${lm} min`}</div>
-        <div class="ls">Board at ${code ? `<a href="#stop/${code}">${esc(titleCase(l.from.name))} (${code})</a>` : esc(titleCase(l.from?.name || ''))}<br>Alight at ${esc(titleCase(l.to?.name || ''))}${l.to?.stopCode ? ' (' + esc(l.to.stopCode) + ')' : ''}</div>
+      const no = busNo(l), what = l.shuttle === 'nus' ? `NUS shuttle ${no}` : l.shuttle === 'ntu' ? `NTU ${legLabel(l)} shuttle` : `Bus ${no}`;
+      return `<div class="leg"><span class="badge" style="background:${legColor(l)}">${esc(legLabel(l))}</span><div style="min-width:0"><div class="lt">${esc(what)}${n ? ` · ${n} stop${n > 1 ? 's' : ''}` : ''}${l.estimate ? ` · ~${lm} min` : ` · ${lm} min`}</div>
+        <div class="ls">Board at ${code ? `<a href="#stop/${code}">${esc(titleCase(l.from.name))} (${esc(codeLabel(code))})</a>` : esc(titleCase(l.from?.name || ''))}<br>Alight at ${esc(titleCase(l.to?.name || ''))}${l.to?.stopCode ? ' (' + esc(codeLabel(l.to.stopCode)) + ')' : ''}</div>
         ${code ? boardHTML(code, { compact: true, only: [no] }) : ''}</div></div>`;
     }
     return `<div class="leg"><span class="badge" style="background:${legColor(l)}">${esc(legLabel(l))}</span><div><div class="lt">${l.mode === 'TRAM' ? 'LRT' : 'MRT'} ${esc(legLabel(l))}${n ? ` · ${n} stop${n > 1 ? 's' : ''}` : ''} · ${lm} min</div>
@@ -1265,7 +1616,16 @@ $('#planForm').addEventListener('submit', async e => {
   out.innerHTML = `<div class="loading"><span class="spin"></span>Finding routes…</div>`;
   let its = null, note = '';
   if (mode !== 'BUS' || store.get('onemap', {}).token) {
-    try { its = await onemapRoute(from, to, when, mode); }
+    try {
+      its = await onemapRoute(from, to, when, mode);
+      if (mode !== 'RAIL') {
+        const extra = await campusCombos(from, to, when, mode).catch(() => []);
+        if (extra.length) {
+          const fastest = Math.min(...its.map(i => i.duration));
+          its = [...its, ...extra.filter(x => x.duration < fastest * 1.4 + 300)].sort((a, b) => a.duration - b.duration).slice(0, 5);
+        }
+      }
+    }
     catch (err) {
       if (err.code === 'no-token') note = mode === 'BUS' ? '' : `<div class="note warn">Bus + MRT routes need a OneMap account. <a href="#more">Connect OneMap</a> under More. Showing bus-only estimates for now.</div>`;
       else if (err.code === 'auth') note = `<div class="note warn">Your OneMap sign-in expired. <a href="#more">Sign in again</a> under More. Showing bus-only estimates for now.</div>`;
@@ -1276,7 +1636,7 @@ $('#planForm').addEventListener('submit', async e => {
   if (!its) {
     its = busPlanner(from, to, when);
     if (!its.length) { out.innerHTML = note + `<div class="card empty"><p>No bus route found within 1 km of both ends.</p><p class="muted small">Try a nearer starting point or connect OneMap for Bus + MRT.</p></div>`; return; }
-    note += `<div class="note">Bus-only estimates: ride times assume about ${'1.6'} min per stop plus a short wait. Live times show for the first bus.</div>`;
+    note += `<div class="note">Bus and campus shuttle estimates: ride times assume about 1.6 min per stop on public buses and 1.2–1.3 min on shuttles, plus a short wait. Live times show for each bus.</div>`;
   }
   out.innerHTML = note + `<h3>${esc(from.name)} → ${esc(to.name)}</h3>` + its.map((it, i) => itinHTML(it, i, i === 0)).join('');
   $$('[data-it]', out).forEach(b => b.onclick = () => { const l = b.nextElementSibling; l.hidden = !l.hidden; b.setAttribute('aria-expanded', !l.hidden); tick(false); });
@@ -1303,6 +1663,7 @@ function route() {
   if (view === 'stop' && a) { if (!first) S.navDepth++; return showStop(a); }
   if (view === 'svc' && a) { if (!first) S.navDepth++; return showService(a, +(b || 0)); }
   if (view === 'isb' && a) { if (!first) S.navDepth++; return showIsb(a); }
+  if (view === 'ntu' && a) { if (!first) S.navDepth++; return showNtu(a); }
   closeSheet(); S.navDepth = 0;
   setTab(['saved', 'nearby', 'search', 'plan', 'more'].includes(view) ? view : (S.saved.length ? 'saved' : 'nearby'));
 }
@@ -1317,6 +1678,7 @@ async function boot() {
   try {
     const [stops, services] = await Promise.all([loadJSON('stops.min.json', 7), loadJSON('services.min.json', 7)]);
     for (const [id, v] of Object.entries(NUS_STOPS)) stops['NUS:' + id] = [v[0], v[1], v[2], 'NUS shuttle stop'];
+    for (const [id, v] of Object.entries(NTU_STOPS)) stops['NTU:' + id] = [v[0], v[1], v[2], 'NTU shuttle stop'];
     S.stops = stops; S.services = services; buildIndex();
     $('#boot').hidden = true;
     S.first = true; route();
